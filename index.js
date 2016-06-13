@@ -92,6 +92,8 @@ function flush() {
       _items = _items.concat(curBatch);
     });
   }
+
+  // TODO: What if flush() is a callback function?
 }
 
 function start() {
@@ -101,11 +103,21 @@ function start() {
 }
 
 function stop() {
-  flush()
-    .then(function() {
+  var res = flush();
+
+  if (res && res.then) {
+    // Probably a promise
+    res.then(function() {
       clearInterval(_interval);
       _interval = undefined;
     });
+  } else {
+    // Probably synchronous
+    clearInterval(_interval);
+    _interval = undefined;
+  }
+
+  // TODO: What if flush() is a callback function?
 }
 
 ////
