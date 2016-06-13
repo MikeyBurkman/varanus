@@ -12,6 +12,7 @@ var varanus = require('varanus');
 
 varanus.init({
   flush: function(logs) {
+    // Is an array of logs, with format {name: string, time: integer (ms), created: Date}
     console.log('Performance logs: ', logs);
   }
 });
