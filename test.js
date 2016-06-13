@@ -2,6 +2,7 @@
 
 var expect = require('chai').expect;
 var sinon = require('sinon');
+var Promise = require('bluebird');
 
 describe(__filename, function() {
 
@@ -12,7 +13,7 @@ describe(__filename, function() {
     varanus = require('./index');
   });
 
-  it('It should parse the function name as the service name', function(done) {
+  it('Should be able to monitor callback functions', function(done) {
     var flush = sinon.stub();
 
     varanus.init({
@@ -21,26 +22,58 @@ describe(__filename, function() {
 
     var monitor = varanus.newMonitor(__filename);
 
-    var fn = monitor(function foo(callback) {
+    var fn = monitor(function fooCallback(callback) {
       setTimeout(function() {
-        callback(null);
+        callback(null, 'blah');
       }, 200);
     });
 
-    fn(function() {
+    fn(function(err, result) {
+      expect(err).to.not.exist;
+      expect(result).to.eql('blah');
+
       varanus.flush();
 
       expect(flush.callCount).to.eql(1);
 
       var items = flush.getCall(0).args[0];
       expect(items.length).to.eql(1);
-      expect(items[0].name).to.eql('/test-foo');
+      expect(items[0].name).to.eql('/test-fooCallback');
       expect(items[0].time).to.be.within(200, 250);
       expect(items[0]).to.have.property('created');
 
       done();
     });
 
+  });
+
+  it('Should be able to monitor promise functions', function() {
+    var flush = sinon.stub();
+
+    varanus.init({
+      flush: flush
+    });
+
+    var monitor = varanus.newMonitor(__filename);
+
+    var fn = monitor(function fooPromise() {
+      return Promise.delay(200).return('blah');
+    });
+
+    return fn().then(function(result) {
+      expect(result).to.eql('blah');
+
+      varanus.flush();
+
+      expect(flush.callCount).to.eql(1);
+
+      var items = flush.getCall(0).args[0];
+      expect(items.length).to.eql(1);
+      expect(items[0].name).to.eql('/test-fooPromise');
+      expect(items[0].time).to.be.within(200, 250);
+      expect(items[0]).to.have.property('created');
+
+    });
   });
 
   it('It should parse the filename as a monitor', function() {
