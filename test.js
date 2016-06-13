@@ -25,7 +25,7 @@ describe(__filename, function() {
 
     varanus.newMonitor({
       name: 'fooService'
-    }).logTime('testService', 42);
+    }).logTime('testFn', 42);
 
     varanus.flush();
 
@@ -33,7 +33,8 @@ describe(__filename, function() {
 
     var items = flush.getCall(0).args[0];
     expect(items.length).to.eql(1);
-    expect(items[0].name).to.eql('fooService-testService');
+    expect(items[0].service).to.eql('fooService');
+    expect(items[0].fnName).to.eql('testFn');
     expect(items[0].time).to.eql(42);
     expect(items[0]).to.have.property('created');
   });
@@ -45,7 +46,7 @@ describe(__filename, function() {
       flush: flush
     });
 
-    varanus.newMonitor(__filename).logTime('testService', 42);
+    varanus.newMonitor(__filename).logTime('testFn', 42);
 
     varanus.flush();
 
@@ -53,7 +54,8 @@ describe(__filename, function() {
 
     var items = flush.getCall(0).args[0];
     expect(items.length).to.eql(1);
-    expect(items[0].name).to.eql('/test-testService');
+    expect(items[0].service).to.eql('/test');
+    expect(items[0].fnName).to.eql('testFn');
     expect(items[0].time).to.eql(42);
     expect(items[0]).to.have.property('created');
 
@@ -84,7 +86,8 @@ describe(__filename, function() {
 
       var items = flush.getCall(0).args[0];
       expect(items.length).to.eql(1);
-      expect(items[0].name).to.eql('/test-fooCallback');
+      expect(items[0].service).to.eql('/test');
+      expect(items[0].fnName).to.eql('fooCallback');
       expect(items[0].time).to.be.within(200, 250);
       expect(items[0]).to.have.property('created');
 
@@ -115,7 +118,8 @@ describe(__filename, function() {
 
       var items = flush.getCall(0).args[0];
       expect(items.length).to.eql(1);
-      expect(items[0].name).to.eql('/test-fooPromise');
+      expect(items[0].service).to.eql('/test');
+      expect(items[0].fnName).to.eql('fooPromise');
       expect(items[0].time).to.be.within(200, 250);
       expect(items[0]).to.have.property('created');
 

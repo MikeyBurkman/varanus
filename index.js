@@ -175,7 +175,8 @@ function _monitor(serviceName, fnName, fn) {
 function _logTime(monitorName, fnName, timeSpent) {
 
   var item = {
-    name: monitorName + '-' + fnName,
+    service: monitorName,
+    fnName: fnName,
     time: timeSpent,
     created: new Date()
   };
