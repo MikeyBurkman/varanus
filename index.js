@@ -2,7 +2,7 @@
 'use strict';
 
 var _configured = false;
-var _log;
+var _log = _defaultLogger();
 var _flushInterval;
 var _flush;
 
@@ -47,7 +47,7 @@ function newMonitor(opts) {
   var serviceName;
 
   if (opts.file) {
-    serviceName = _removeFilePrefix(opts.file);
+    serviceName = _formatFileName(opts.file);
   } else {
     serviceName = opts.name;
   }
@@ -110,8 +110,9 @@ function stop() {
 
 ////
 
-function _removeFilePrefix(fileName) {
-  return fileName.replace(process.cwd(), '');
+function _formatFileName(fileName) {
+  return fileName.substr(0, fileName.lastIndexOf('.')) // Remove file ext
+    .replace(process.cwd(), ''); // Remove root directory
 }
 
 function _monitor(serviceName, fnName, fn) {
@@ -162,7 +163,7 @@ function _monitor(serviceName, fnName, fn) {
 function _logTime(monitorName, fnName, timeSpent) {
 
   var item = {
-    name: monitorName + '.' + fnName,
+    name: monitorName + '-' + fnName,
     time: timeSpent,
     created: new Date()
   };
