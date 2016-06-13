@@ -24,16 +24,27 @@ var monitor = require('varanus').newMonitor(__filename);
 ...
 
 exports.getById = monitor(function getById(id) {
-  return dao.getById(id); //dao.getById() returns a promise
+  return dao.getById(id); // Works when the function returns a promise
 });
 
 exports.getByName = monitor(function getByName(name, callback) {
-  return dao.getByName(name, callback); // Also works with callback functions
+  // Also works with callback functions, if it's the last argument and follows (err, result) style
+  return dao.getByName(name, callback);
 });
 
 exports.transform = monitor(function transform(records) {
-  return records.map(function(record) { ... }); // Also works with synchronous functions
+  // And of course works with synchronous functions
+  for (var i = 0; i < records.length; i += 1) {
+    ...
+  });
 });
+
+exports.foo = function() {
+  // Alternatively, you can call monitor.logTime() directly instead of wrapping a function
+  var start = Date.now();
+  ...
+  monitor.logTime('foo', Date.now() - start); // fnName will be set to 'foo'
+}
 ```
 
 ### API
