@@ -13,6 +13,49 @@ describe(__filename, function() {
     varanus = require('./index');
   });
 
+  it('Should use the given service name in the flushed records', function() {
+    var flush = sinon.stub();
+
+    varanus.init({
+      flush: flush
+    });
+
+    varanus.newMonitor({
+      name: 'fooService'
+    }).logTime('testService', 42);
+
+    varanus.flush();
+
+    expect(flush.callCount).to.eql(1);
+
+    var items = flush.getCall(0).args[0];
+    expect(items.length).to.eql(1);
+    expect(items[0].name).to.eql('fooService-testService');
+    expect(items[0].time).to.eql(42);
+    expect(items[0]).to.have.property('created');
+  });
+
+  it('Should parse the filename if it is the only arg to newMonitor()', function() {
+    var flush = sinon.stub();
+
+    varanus.init({
+      flush: flush
+    });
+
+    varanus.newMonitor(__filename).logTime('testService', 42);
+
+    varanus.flush();
+
+    expect(flush.callCount).to.eql(1);
+
+    var items = flush.getCall(0).args[0];
+    expect(items.length).to.eql(1);
+    expect(items[0].name).to.eql('/test-testService');
+    expect(items[0].time).to.eql(42);
+    expect(items[0]).to.have.property('created');
+
+  });
+
   it('Should be able to monitor callback functions', function(done) {
     var flush = sinon.stub();
 
@@ -74,27 +117,6 @@ describe(__filename, function() {
       expect(items[0]).to.have.property('created');
 
     });
-  });
-
-  it('It should parse the filename as a monitor', function() {
-    var flush = sinon.stub();
-
-    varanus.init({
-      flush: flush
-    });
-
-    varanus.newMonitor(__filename).logTime('testService', 42);
-
-    varanus.flush();
-
-    expect(flush.callCount).to.eql(1);
-
-    var items = flush.getCall(0).args[0];
-    expect(items.length).to.eql(1);
-    expect(items[0].name).to.eql('/test-testService');
-    expect(items[0].time).to.eql(42);
-    expect(items[0]).to.have.property('created');
-
   });
 
   it('Should flush according to the flush interval', function(done) {
