@@ -155,7 +155,7 @@ function _monitor(serviceName, fnName, fn) {
 
     } else {
       var res = fn.apply(undefined, args);
-      if (res.then) {
+      if (res && res.then) {
         // Probably (hopefully) a promise
         return res.then(function(data) {
           l(Date.now() - start);

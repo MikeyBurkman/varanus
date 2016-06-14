@@ -1,6 +1,6 @@
 {
   "name": "varanus",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Tool for sending performance monitoring metrics",
   "main": "index.js",
   "scripts": {

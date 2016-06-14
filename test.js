@@ -126,6 +126,32 @@ describe(__filename, function() {
     });
   });
 
+  it('Should be able to monitor functions that do not return values', function() {
+    var flush = sinon.stub();
+
+    varanus.init({
+      flush: flush
+    });
+
+    var monitor = varanus.newMonitor(__filename);
+
+    var fn = monitor(function fooNoReturn() {
+      // noop
+    });
+
+    fn();
+
+    varanus.flush();
+
+    expect(flush.callCount).to.eql(1);
+
+    var items = flush.getCall(0).args[0];
+    expect(items.length).to.eql(1);
+    expect(items[0].service).to.eql('/test');
+    expect(items[0].fnName).to.eql('fooNoReturn');
+    expect(items[0]).to.have.property('created');
+  });
+
   it('Should flush according to the flush interval', function(done) {
     var flush = sinon.stub();
 
