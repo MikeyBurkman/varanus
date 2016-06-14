@@ -53,10 +53,10 @@ exports.transform = monitor(function transform(records) {
 });
 
 exports.foo = function() {
-  // Alternatively, you can call monitor.logTime() directly instead of wrapping a function
+  // Alternatively, you can call monitor.logTime(fnName, start millis, end millis) directly instead of wrapping a function
   var start = Date.now();
   ...
-  monitor.logTime('foo', start, Date.now()); // fnName will be set to 'foo'
+  monitor.logTime('foo', start, Date.now());
 }
 ```
 
