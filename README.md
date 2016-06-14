@@ -4,7 +4,7 @@ Monitor utility for NodeJS apps
 ### What does it do?
 A simple utility for monitoring function run times and flushing them out to another system in batches.
 
-Varanus is agnostic when it comes to where these logs go. It can be a SQL database, Elasticsearch, InfluxDB, Prometheus, or even just your regular log files.
+Varanus is agnostic to where the monitor logs are sent. They can be sent to an SQL database, Elasticsearch, InfluxDB, Prometheus, or even just your regular log files.
 
 Failures to flush are handled gracefully. If flushing throws an exception or returns a rejected promise, the records that would have been sent are re-collected and sent again on the next flush cycle. 
 
