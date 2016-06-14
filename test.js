@@ -25,7 +25,7 @@ describe(__filename, function() {
 
     varanus.newMonitor({
       name: 'fooService'
-    }).logTime('testFn', 42);
+    }).logTime('testFn', 0, 42);
 
     varanus.flush();
 
@@ -36,7 +36,7 @@ describe(__filename, function() {
     expect(items[0].service).to.eql('fooService');
     expect(items[0].fnName).to.eql('testFn');
     expect(items[0].time).to.eql(42);
-    expect(items[0]).to.have.property('created');
+    expect(items[0].created).to.eql(new Date(0));
   });
 
   it('Should parse the filename if it is the only arg to newMonitor()', function() {
@@ -46,7 +46,7 @@ describe(__filename, function() {
       flush: flush
     });
 
-    varanus.newMonitor(__filename).logTime('testFn', 42);
+    varanus.newMonitor(__filename).logTime('testFn', 100, 142);
 
     varanus.flush();
 
@@ -56,8 +56,8 @@ describe(__filename, function() {
     expect(items.length).to.eql(1);
     expect(items[0].service).to.eql('/test');
     expect(items[0].fnName).to.eql('testFn');
-    expect(items[0].time).to.eql(42);
-    expect(items[0]).to.have.property('created');
+    expect(items[0].time).to.eql(42); // Difference between 142 and 42
+    expect(items[0].created).to.eql(new Date(100));
 
   });
 
@@ -88,7 +88,7 @@ describe(__filename, function() {
       expect(items.length).to.eql(1);
       expect(items[0].service).to.eql('/test');
       expect(items[0].fnName).to.eql('fooCallback');
-      expect(items[0].time).to.be.within(200, 250);
+      expect(items[0].time).to.be.within(190, 210);
       expect(items[0]).to.have.property('created');
 
       done();
@@ -120,7 +120,7 @@ describe(__filename, function() {
       expect(items.length).to.eql(1);
       expect(items[0].service).to.eql('/test');
       expect(items[0].fnName).to.eql('fooPromise');
-      expect(items[0].time).to.be.within(200, 250);
+      expect(items[0].time).to.be.within(190, 210);
       expect(items[0]).to.have.property('created');
 
     });
@@ -160,8 +160,8 @@ describe(__filename, function() {
       flushInterval: 200
     });
 
-    varanus.newMonitor(__filename).logTime('testService', 42);
-    varanus.newMonitor(__filename).logTime('testService2', 100);
+    varanus.newMonitor(__filename).logTime('testService', 0, 42);
+    varanus.newMonitor(__filename).logTime('testService2', 50, 150);
 
     setTimeout(function() {
       expect(flush.callCount).to.eql(1);
@@ -175,7 +175,7 @@ describe(__filename, function() {
 
   it('Should not flush until it has been initialized', function() {
 
-    varanus.newMonitor(__filename).logTime('testService', 42);
+    varanus.newMonitor(__filename).logTime('testService', 0, 42);
 
     varanus.flush();
 
@@ -185,7 +185,7 @@ describe(__filename, function() {
       flush: flush
     });
 
-    varanus.newMonitor(__filename).logTime('testService', 100);
+    varanus.newMonitor(__filename).logTime('testService', 0, 100);
 
     varanus.flush();
 
@@ -207,7 +207,7 @@ describe(__filename, function() {
 
     var monitor = varanus.newMonitor(__filename);
 
-    monitor.logTime('testService', 42);
+    monitor.logTime('testService', 0, 42);
 
     // This one will throw an error
     varanus.flush();
@@ -217,7 +217,7 @@ describe(__filename, function() {
     expect(items1.length).to.eql(1);
 
     // Send another record
-    monitor.logTime('testService', 50);
+    monitor.logTime('testService', 0, 50);
 
     // This one should succeed
     varanus.flush();
@@ -239,7 +239,7 @@ describe(__filename, function() {
 
     var monitor = varanus.newMonitor(__filename);
 
-    monitor.logTime('testService', 42);
+    monitor.logTime('testService', 0, 42);
 
     // This one will throw an error
     varanus.flush();
@@ -249,7 +249,7 @@ describe(__filename, function() {
     expect(items1.length).to.eql(1);
 
     // Send another record
-    monitor.logTime('testService', 50);
+    monitor.logTime('testService', 0, 50);
 
     setTimeout(function() {
       // This one should succeed

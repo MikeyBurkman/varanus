@@ -133,8 +133,8 @@ function _monitor(serviceName, fnName, fn) {
     fnName = fn.name;
   }
 
-  function l(timeSpent) {
-    _logTime(serviceName, fnName, timeSpent);
+  function l(start, end) {
+    _logTime(serviceName, fnName, start, end);
   }
 
   return function() {
@@ -147,7 +147,7 @@ function _monitor(serviceName, fnName, fn) {
       var callback = args.pop();
 
       args.push(function() {
-        l(Date.now() - start);
+        l(start, Date.now());
         callback.apply(undefined, arguments);
       });
 
@@ -158,13 +158,13 @@ function _monitor(serviceName, fnName, fn) {
       if (res && res.then) {
         // Probably (hopefully) a promise
         return res.then(function(data) {
-          l(Date.now() - start);
+          l(start, Date.now());
           return data;
         });
 
       } else {
         // Synchronous function
-        l(Date.now() - start);
+        l(start, Date.now());
         return res;
       }
 
@@ -172,13 +172,14 @@ function _monitor(serviceName, fnName, fn) {
   };
 }
 
-function _logTime(monitorName, fnName, timeSpent) {
+function _logTime(monitorName, fnName, startTime, endTime, wasError) {
 
   var item = {
     service: monitorName,
     fnName: fnName,
-    time: timeSpent,
-    created: new Date()
+    time: endTime - startTime,
+    created: new Date(startTime),
+    wasError: wasError
   };
 
   _items.push(item);
