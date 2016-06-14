@@ -133,21 +133,20 @@ function _monitor(serviceName, fnName, fn) {
     fnName = fn.name;
   }
 
-  function l(start, end) {
-    _logTime(serviceName, fnName, start, end);
-  }
-
   return function() {
     var args = Array.prototype.slice.call(arguments);
 
     var start = Date.now();
+    function finish() {
+      _logTime(serviceName, fnName, start, Date.now());
+    }
 
     if (typeof args[args.length - 1] === 'function') {
       // Async callback function
       var callback = args.pop();
 
       args.push(function() {
-        l(start, Date.now());
+        finish();
         callback.apply(undefined, arguments);
       });
 
@@ -158,13 +157,13 @@ function _monitor(serviceName, fnName, fn) {
       if (res && res.then) {
         // Probably (hopefully) a promise
         return res.then(function(data) {
-          l(start, Date.now());
+          finish();
           return data;
         });
 
       } else {
         // Synchronous function
-        l(start, Date.now());
+        finish();
         return res;
       }
 
