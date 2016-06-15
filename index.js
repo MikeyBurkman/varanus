@@ -105,21 +105,11 @@ function start() {
 }
 
 function stop() {
-  var res = flush();
-
-  if (res && res.then) {
-    // Probably a promise
-    res.then(function() {
-      clearInterval(_interval);
-      _interval = undefined;
-    });
-  } else {
-    // Probably synchronous
+  flush();
+  if (_interval) {
     clearInterval(_interval);
     _interval = undefined;
   }
-
-  // TODO: What if flush() is a callback function?
 }
 
 ////
