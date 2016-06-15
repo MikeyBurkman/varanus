@@ -4,6 +4,7 @@
 var _configured = false;
 var _log = _defaultLogger();
 var _flushInterval;
+var _maxItems;
 var _flush;
 
 // Will flush using this interval
@@ -24,6 +25,7 @@ function init(opts) {
 
   _flush = opts.flush;
   _flushInterval = opts.flushInterval || 60000;
+  _maxItems = opts.maxItems || Infinity;
   _log = opts.log || _defaultLogger();
 
   if (!_flush) {
@@ -182,6 +184,10 @@ function _logTime(monitorName, fnName, startTime, endTime, wasError) {
   };
 
   _items.push(item);
+
+  if (_items.length >= _maxItems) {
+    flush();
+  }
 }
 
 function _defaultLogger() {

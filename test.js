@@ -263,4 +263,37 @@ describe(__filename, function() {
     });
   });
 
+  it('Should not flush automatically if the number of items is below the set threshold', function() {
+    var flush = sinon.stub();
+
+    varanus.init({
+      flush: flush,
+      maxItems: 2
+    });
+
+    var monitor = varanus.newMonitor(__filename);
+
+    monitor.logTime('testService1', 0, 42);
+
+    expect(flush.callCount).to.eql(0);
+  });
+
+  it('Should proactively flush if the number of items passes the set threshold', function() {
+    var flush = sinon.stub();
+
+    varanus.init({
+      flush: flush,
+      maxItems: 2
+    });
+
+    var monitor = varanus.newMonitor(__filename);
+
+    monitor.logTime('testService1', 0, 42);
+    monitor.logTime('testService2', 0, 50);
+
+    expect(flush.callCount).to.eql(1);
+    var items = flush.getCall(0).args[0];
+    expect(items.length).to.eql(2);
+  });
+
 });
