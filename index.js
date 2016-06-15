@@ -7,8 +7,8 @@ var _flushInterval;
 var _maxItems;
 var _flush;
 
-// Will flush using this interval
-var _interval;
+// Will flush using this setTimeout
+var _timeout;
 // Contains everything that hasn't been flushed yet
 var _items = [];
 
@@ -61,6 +61,12 @@ function newMonitor(opts) {
 }
 
 function flush() {
+
+  // If we flushed because we reached our max items, then make sure we don't
+  //  try to automatically flush again until the flushInterval has passed
+  clearTimeout(_timeout);
+  _timeout = setTimeout(flush, _flushInterval);
+
   if (_items.length === 0) {
     return;
   }
@@ -99,16 +105,16 @@ function flush() {
 }
 
 function start() {
-  if (!_interval) {
-    _interval = setInterval(flush, _flushInterval);
+  if (!_timeout) {
+    _timeout = setTimeout(flush, _flushInterval);
   }
 }
 
 function stop() {
   flush();
-  if (_interval) {
-    clearInterval(_interval);
-    _interval = undefined;
+  if (_timeout) {
+    clearTimeout(_timeout);
+    _timeout = undefined;
   }
 }
 
