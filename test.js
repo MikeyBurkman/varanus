@@ -9,11 +9,51 @@ describe(__filename, function() {
   var varanus;
 
   beforeEach(function() {
-    if (varanus) {
-      varanus.stop();
-    }
     delete require.cache[require.resolve('./index')];
     varanus = require('./index');
+  });
+
+  it('Should not log if disabled', function() {
+    var flush = sinon.stub();
+
+    varanus.init({
+      flush: flush,
+      enabled: false
+    });
+
+    varanus.newMonitor('fooService').logTime('testFn', 0, 42);
+
+    varanus.flush();
+
+    expect(flush.callCount).to.eql(0);
+  });
+
+  it('Should be able to toggle enabled/disabled', function() {
+    var flush = sinon.stub();
+
+    varanus.init({
+      flush: flush,
+      enabled: false
+    });
+
+    var monitor = varanus.newMonitor('fooService');
+
+    monitor.logTime('testFn', 0, 42);
+    varanus.flush();
+    expect(flush.callCount).to.eql(0);
+
+    // Now enable and try again
+    varanus.enable();
+    monitor.logTime('testFn', 0, 42);
+    varanus.flush();
+    expect(flush.callCount).to.eql(1);
+
+    // Now disable, try again, and make sure flush wasn't called again
+    varanus.disable();
+    monitor.logTime('testFn', 0, 42);
+    varanus.flush();
+    expect(flush.callCount).to.eql(1); // Still 1
+
   });
 
   it('Should use the given service name in the flushed records', function() {
@@ -23,9 +63,7 @@ describe(__filename, function() {
       flush: flush
     });
 
-    varanus.newMonitor({
-      name: 'fooService'
-    }).logTime('testFn', 0, 42);
+    varanus.newMonitor('fooService').logTime('testFn', 0, 42);
 
     varanus.flush();
 
@@ -39,7 +77,7 @@ describe(__filename, function() {
     expect(items[0].created).to.eql(new Date(0));
   });
 
-  it('Should parse the filename if it is the only arg to newMonitor()', function() {
+  it('Should parse a filename if it is the arg to newMonitor()', function() {
     var flush = sinon.stub();
 
     varanus.init({
@@ -58,7 +96,6 @@ describe(__filename, function() {
     expect(items[0].fnName).to.eql('testFn');
     expect(items[0].time).to.eql(42); // Difference between 142 and 42
     expect(items[0].created).to.eql(new Date(100));
-
   });
 
   it('Should be able to monitor callback functions', function(done) {
@@ -263,12 +300,12 @@ describe(__filename, function() {
     });
   });
 
-  it('Should not flush automatically if the number of items is below the set threshold', function() {
+  it('Should not flush automatically if the number of records is below the set threshold', function() {
     var flush = sinon.stub();
 
     varanus.init({
       flush: flush,
-      maxItems: 2
+      maxRecords: 2
     });
 
     var monitor = varanus.newMonitor(__filename);
@@ -278,12 +315,12 @@ describe(__filename, function() {
     expect(flush.callCount).to.eql(0);
   });
 
-  it('Should proactively flush if the number of items passes the set threshold', function() {
+  it('Should proactively flush if the number of records passes the set threshold', function() {
     var flush = sinon.stub();
 
     varanus.init({
       flush: flush,
-      maxItems: 2
+      maxRecords: 2
     });
 
     var monitor = varanus.newMonitor(__filename);

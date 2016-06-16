@@ -1,10 +1,11 @@
 
 'use strict';
 
+var _disabled = false;
 var _configured = false;
 var _log = _defaultLogger();
 var _flushInterval;
-var _maxItems;
+var _maxRecords;
 var _flush;
 
 // Will flush using this setTimeout
@@ -16,16 +17,17 @@ var _items = [];
 exports.init = init;
 exports.newMonitor = newMonitor;
 exports.flush = flush;
-exports.stop = stop;
-exports.start = start;
+exports.enable = enable;
+exports.disable = disable;
 ////////////////
 
 function init(opts) {
   _configured = false;
 
+  _disabled = opts.enabled === false;
   _flush = opts.flush;
   _flushInterval = opts.flushInterval || 60000;
-  _maxItems = opts.maxItems || Infinity;
+  _maxRecords = opts.maxRecords || Infinity;
   _log = opts.log || _defaultLogger();
 
   if (!_flush) {
@@ -34,25 +36,14 @@ function init(opts) {
 
   _configured = true;
 
-  start();
+  _timeout = setTimeout(flush, _flushInterval);
 
   return module.exports;
 }
 
-function newMonitor(opts) {
-  if (typeof opts === 'string') {
-    opts = {
-      file: opts
-    };
-  }
+function newMonitor(monitorName) {
 
-  var serviceName;
-
-  if (opts.file) {
-    serviceName = _formatFileName(opts.file);
-  } else {
-    serviceName = opts.name;
-  }
+  var serviceName = _formatFileName(monitorName);
 
   var fn = _monitor.bind(null, serviceName);
   fn.logTime = _logTime.bind(null, serviceName);
@@ -75,8 +66,6 @@ function flush() {
     _log.warn('Varanus is trying to flush records, but it has not been initialized yet');
     return;
   }
-
-  _log.info('Flushing %s records', _items.length);
 
   var curBatch = _items;
   _items = [];
@@ -104,25 +93,21 @@ function flush() {
   // TODO: What if flush() is a callback function?
 }
 
-function start() {
-  if (!_timeout) {
-    _timeout = setTimeout(flush, _flushInterval);
-  }
+
+function enable() {
+  _disabled = false;
 }
 
-function stop() {
-  flush();
-  if (_timeout) {
-    clearTimeout(_timeout);
-    _timeout = undefined;
-  }
+function disable() {
+  _disabled = true;
 }
 
 ////
 
 function _formatFileName(fileName) {
-  return fileName.substr(0, fileName.lastIndexOf('.')) // Remove file ext
-    .replace(process.cwd(), ''); // Remove root directory
+  var withoutRoot = fileName.replace(process.cwd(), '');
+  var fileExt = withoutRoot.lastIndexOf('.');
+  return (fileExt > -1) ? withoutRoot.substr(0, fileExt) : withoutRoot;
 }
 
 function _monitor(serviceName, fnName, fn) {
@@ -169,27 +154,28 @@ function _monitor(serviceName, fnName, fn) {
   };
 }
 
-function _logTime(monitorName, fnName, startTime, endTime, wasError) {
+function _logTime(monitorName, fnName, startTime, endTime) {
+
+  if (_disabled) {
+    return;
+  }
 
   var item = {
     service: monitorName,
     fnName: fnName,
     time: endTime - startTime,
-    created: new Date(startTime),
-    wasError: wasError
+    created: new Date(startTime)
   };
 
   _items.push(item);
 
-  if (_items.length >= _maxItems) {
+  if (_items.length >= _maxRecords) {
     flush();
   }
 }
 
 function _defaultLogger() {
   return {
-    debug: console.log.bind(console, '<DEBUG>'),
-    info: console.log.bind(console, '<INFO>'),
     warn: console.error.bind(console, '<WARN>'),
     error: console.error.bind(console, '<ERROR>')
   };
