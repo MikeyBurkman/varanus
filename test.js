@@ -21,7 +21,7 @@ describe(__filename, function() {
       enabled: false
     });
 
-    varanus.newMonitor('fooService').logTime('testFn', 0, 42);
+    varanus.newMonitor('fooService').logTime('info', 'testFn', 0, 42);
 
     varanus.flush();
 
@@ -38,19 +38,19 @@ describe(__filename, function() {
 
     var monitor = varanus.newMonitor('fooService');
 
-    monitor.logTime('testFn', 0, 42);
+    monitor.logTime('info', 'testFn', 0, 42);
     varanus.flush();
     expect(flush.callCount).to.eql(0);
 
     // Now enable and try again
-    varanus.enable();
-    monitor.logTime('testFn', 0, 42);
+    varanus.setLogLevel('info');
+    monitor.logTime('info', 'testFn', 0, 42);
     varanus.flush();
     expect(flush.callCount).to.eql(1);
 
     // Now disable, try again, and make sure flush wasn't called again
     varanus.disable();
-    monitor.logTime('testFn', 0, 42);
+    monitor.logTime('info', 'testFn', 0, 42);
     varanus.flush();
     expect(flush.callCount).to.eql(1); // Still 1
 
@@ -63,7 +63,7 @@ describe(__filename, function() {
       flush: flush
     });
 
-    varanus.newMonitor('fooService').logTime('testFn', 0, 42);
+    varanus.newMonitor('fooService').logTime('info', 'testFn', 0, 42);
 
     varanus.flush();
 
@@ -84,7 +84,7 @@ describe(__filename, function() {
       flush: flush
     });
 
-    varanus.newMonitor(__filename).logTime('testFn', 100, 142);
+    varanus.newMonitor(__filename).logTime('info', 'testFn', 100, 142);
 
     varanus.flush();
 
@@ -197,8 +197,8 @@ describe(__filename, function() {
       flushInterval: 200
     });
 
-    varanus.newMonitor(__filename).logTime('testService', 0, 42);
-    varanus.newMonitor(__filename).logTime('testService2', 50, 150);
+    varanus.newMonitor(__filename).logTime('info', 'testService', 0, 42);
+    varanus.newMonitor(__filename).logTime('info', 'testService2', 50, 150);
 
     setTimeout(function() {
       expect(flush.callCount).to.eql(1);
@@ -212,7 +212,7 @@ describe(__filename, function() {
 
   it('Should not flush until it has been initialized', function() {
 
-    varanus.newMonitor(__filename).logTime('testService', 0, 42);
+    varanus.newMonitor(__filename).logTime('info', 'testService', 0, 42);
 
     varanus.flush();
 
@@ -222,7 +222,7 @@ describe(__filename, function() {
       flush: flush
     });
 
-    varanus.newMonitor(__filename).logTime('testService', 0, 100);
+    varanus.newMonitor(__filename).logTime('info', 'testService', 0, 100);
 
     varanus.flush();
 
@@ -244,7 +244,7 @@ describe(__filename, function() {
 
     var monitor = varanus.newMonitor(__filename);
 
-    monitor.logTime('testService', 0, 42);
+    monitor.logTime('info', 'testService', 0, 42);
 
     // This one will throw an error
     varanus.flush();
@@ -254,7 +254,7 @@ describe(__filename, function() {
     expect(items1.length).to.eql(1);
 
     // Send another record
-    monitor.logTime('testService', 0, 50);
+    monitor.logTime('info', 'testService', 0, 50);
 
     // This one should succeed
     varanus.flush();
@@ -276,7 +276,7 @@ describe(__filename, function() {
 
     var monitor = varanus.newMonitor(__filename);
 
-    monitor.logTime('testService', 0, 42);
+    monitor.logTime('info', 'testService', 0, 42);
 
     // This one will throw an error
     varanus.flush();
@@ -286,7 +286,7 @@ describe(__filename, function() {
     expect(items1.length).to.eql(1);
 
     // Send another record
-    monitor.logTime('testService', 0, 50);
+    monitor.logTime('info', 'testService', 0, 50);
 
     setTimeout(function() {
       // This one should succeed
@@ -310,7 +310,7 @@ describe(__filename, function() {
 
     var monitor = varanus.newMonitor(__filename);
 
-    monitor.logTime('testService1', 0, 42);
+    monitor.logTime('info', 'testService1', 0, 42);
 
     expect(flush.callCount).to.eql(0);
   });
@@ -325,12 +325,81 @@ describe(__filename, function() {
 
     var monitor = varanus.newMonitor(__filename);
 
-    monitor.logTime('testService1', 0, 42);
-    monitor.logTime('testService2', 0, 50);
+    monitor.logTime('info', 'testService1', 0, 42);
+    monitor.logTime('info', 'testService2', 0, 50);
 
     expect(flush.callCount).to.eql(1);
     var items = flush.getCall(0).args[0];
     expect(items.length).to.eql(2);
+  });
+
+  describe('#Log Levels', function() {
+    it('Should not include logs below the set threshold, logTime()', function() {
+      var flush = sinon.stub();
+
+      varanus.init({
+        flush: flush,
+        level: 'debug'
+      });
+
+      var monitor = varanus.newMonitor(__filename);
+
+      monitor.logTime('trace', 'testService1', 0, 42); // Shouldn't be logged
+      monitor.logTime('debug', 'testService2', 0, 43);
+      monitor.logTime('info', 'testService3', 0, 44);
+
+      varanus.flush();
+
+      expect(flush.callCount).to.eql(1);
+      var items = flush.getCall(0).args[0];
+      expect(items.length).to.eql(2); // Leave out trace
+    });
+
+    it('Should not include logs below the set threshold, using monitor()', function() {
+      var flush = sinon.stub();
+
+      varanus.init({
+        flush: flush,
+        level: 'debug'
+      });
+
+      var monitor = varanus.newMonitor(__filename);
+
+      var fn1 = monitor.trace(function fn1() {});
+      var fn2 = monitor.debug(function fn2() {});
+      var fn3 = monitor.info(function fn3() {});
+
+      fn1(); // Shouldn't be logged
+      fn2();
+      fn3();
+
+      varanus.flush();
+
+      expect(flush.callCount).to.eql(1);
+      var items = flush.getCall(0).args[0];
+      expect(items.length).to.eql(2); // Leave out trace
+    });
+
+    it('Should log default monitoring at INFO level', function() {
+      var flush = sinon.stub();
+
+      varanus.init({
+        flush: flush,
+        level: 'info'
+      });
+
+      var monitor = varanus.newMonitor(__filename);
+
+      var fn1 = monitor(function fn1() {});
+
+      fn1();
+
+      varanus.flush();
+
+      expect(flush.callCount).to.eql(1);
+      var items = flush.getCall(0).args[0];
+      expect(items.length).to.eql(1);
+    });
   });
 
 });

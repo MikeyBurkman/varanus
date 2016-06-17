@@ -1,8 +1,8 @@
 
 'use strict';
 
-var _disabled = false;
 var _configured = false;
+var _level = 0; // Until initialized, log all calls TODO How to handle this better?
 var _log = _defaultLogger();
 var _flushInterval;
 var _maxRecords;
@@ -13,22 +13,35 @@ var _timeout;
 // Contains everything that hasn't been flushed yet
 var _items = [];
 
+var levelMap = {
+  trace: 10,
+  debug: 20,
+  info: 30
+};
+
 ///// Public API
 exports.init = init;
 exports.newMonitor = newMonitor;
 exports.flush = flush;
-exports.enable = enable;
+exports.setLogLevel = setLogLevel;
 exports.disable = disable;
 ////////////////
 
 function init(opts) {
   _configured = false;
 
-  _disabled = opts.enabled === false;
+  _level = levelMap[opts.level || 'info'];
+  if (opts.enabled === false) {
+    _level = Infinity; // Nothing is above this threshold, so nothing gets logged
+  }
   _flush = opts.flush;
   _flushInterval = opts.flushInterval || 60000;
   _maxRecords = opts.maxRecords || Infinity;
   _log = opts.log || _defaultLogger();
+
+  if (!_level) {
+    throw new Error('Must provide a valid level attribute: ', Object.keys(levelMap).join(' | '));
+  }
 
   if (!_flush) {
     throw new Error('You must provide a `flush` funtion to init(opts)');
@@ -45,7 +58,10 @@ function newMonitor(monitorName) {
 
   var serviceName = _formatFileName(monitorName);
 
-  var fn = _monitor.bind(null, serviceName);
+  var fn = _monitor.bind(null, 'info', serviceName);
+  fn.trace = _monitor.bind(null, 'trace', serviceName);
+  fn.debug = _monitor.bind(null, 'debug', serviceName);
+  fn.info = _monitor.bind(null, 'info', serviceName);
   fn.logTime = _logTime.bind(null, serviceName);
 
   return fn;
@@ -94,12 +110,16 @@ function flush() {
 }
 
 
-function enable() {
-  _disabled = false;
+function setLogLevel(level) {
+  var lvl = levelMap[level || 'info'];
+  if (!lvl) {
+    throw new Error('Must provide a valid level attribute: ', Object.keys(levelMap).join(' | '));
+  }
+  _level = lvl;
 }
 
 function disable() {
-  _disabled = true;
+  _level = Infinity;
 }
 
 ////
@@ -110,7 +130,7 @@ function _formatFileName(fileName) {
   return (fileExt > -1) ? withoutRoot.substr(0, fileExt) : withoutRoot;
 }
 
-function _monitor(serviceName, fnName, fn) {
+function _monitor(logLevel, serviceName, fnName, fn) {
   if (typeof fnName === 'function') {
     fn = fnName;
     fnName = fn.name;
@@ -121,7 +141,7 @@ function _monitor(serviceName, fnName, fn) {
 
     var start = Date.now();
     function finish() {
-      _logTime(serviceName, fnName, start, Date.now());
+      _logTime(serviceName, logLevel, fnName, start, Date.now());
     }
 
     if (typeof args[args.length - 1] === 'function') {
@@ -154,9 +174,10 @@ function _monitor(serviceName, fnName, fn) {
   };
 }
 
-function _logTime(monitorName, fnName, startTime, endTime) {
+function _logTime(monitorName, logLevel, fnName, startTime, endTime) {
 
-  if (_disabled) {
+  var lvl = levelMap[logLevel] || Infinity;
+  if (lvl < _level) {
     return;
   }
 
