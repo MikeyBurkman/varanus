@@ -8,6 +8,10 @@ Varanus is **agnostic with where the monitor logs are sent.** They can be sent t
 
 Varanus provides easy to use **wrapper functions** to be **as transparent as possible** in your code.
 
+Monitor functions have **low overhead**. In testing, monitoring synchronous/promise functions seems to add roughly 600ns overhead. That means you'd have to call that function over 1,000,000 times for the performance to degrade by 1ms. (Traditional Node callback-style functions require some addition processing to intercept, and will roughly double that overhead. Still pretty trivial.)
+
+Monitor functions can be given various log levels. Thus, you can log more information during testing **without adversely affecting production performance.** If the log level is turned off, expect only about 80ns overhead per function call.
+
 **Failures to flush are handled gracefully.** If flushing throws an exception or returns a rejected promise, the records that would have been sent are re-collected and sent again on the next flush cycle.
 
 Varanus does not have to be initialized before anything is logged. Varanus will simply keep collecting records until you've successfully initialized it. **Your app can start logging metrics immediately on startup.**

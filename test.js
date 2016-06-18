@@ -107,13 +107,13 @@ describe(__filename, function() {
 
     var monitor = varanus.newMonitor(__filename);
 
-    var fn = monitor(function fooCallback(callback) {
+    var fn = monitor(function fooCallback(x, callback) {
       setTimeout(function() {
-        callback(null, 'blah');
+        callback(null, x);
       }, 200);
     });
 
-    fn(function(err, result) {
+    fn('blah', function(err, result) {
       expect(err).to.not.exist;
       expect(result).to.eql('blah');
 
@@ -161,6 +161,29 @@ describe(__filename, function() {
       expect(items[0]).to.have.property('created');
 
     });
+  });
+
+  it('Should return the result of the function even when loggign is disabled', function() {
+    var flush = sinon.stub();
+
+    varanus.init({
+      flush: flush,
+      enabled: false
+    });
+
+    var monitor = varanus.newMonitor(__filename);
+
+    var fn = monitor(function fooSync() {
+      return 'blah';
+    });
+
+    var result = fn();
+
+    expect(result).to.eql('blah');
+
+    varanus.flush();
+
+    expect(flush.callCount).to.eql(0);
   });
 
   it('Should be able to monitor functions that do not return values', function() {

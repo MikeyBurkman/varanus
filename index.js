@@ -25,6 +25,7 @@ exports.newMonitor = newMonitor;
 exports.flush = flush;
 exports.setLogLevel = setLogLevel;
 exports.disable = disable;
+exports.logEnabled = logEnabled;
 ////////////////
 
 function init(opts) {
@@ -62,7 +63,12 @@ function newMonitor(monitorName) {
   fn.trace = _monitor.bind(null, 'trace', serviceName);
   fn.debug = _monitor.bind(null, 'debug', serviceName);
   fn.info = _monitor.bind(null, 'info', serviceName);
-  fn.logTime = _logTime.bind(null, serviceName);
+
+  fn.logTime = function(logLevel, fnName, startTime, endTime) {
+    // Using _logTime.bind() here almost doubles the execution time.
+    // Interestingly enough, it doesn't seem to affect the other funtions as much.
+    return _logTime(serviceName, logLevel, fnName, startTime, endTime);
+  };
 
   return fn;
 }
@@ -122,6 +128,11 @@ function disable() {
   _level = Infinity;
 }
 
+function logEnabled(logLevel) {
+  var lvl = levelMap[logLevel] || Infinity;
+  return (lvl >= _level);
+}
+
 ////
 
 function _formatFileName(fileName) {
@@ -137,14 +148,18 @@ function _monitor(logLevel, serviceName, fnName, fn) {
   }
 
   return function() {
-    var args = Array.prototype.slice.call(arguments);
+    if (!logEnabled(logLevel)) {
+      return fn.apply(undefined, arguments);
+    }
 
     var start = Date.now();
     function finish() {
       _logTime(serviceName, logLevel, fnName, start, Date.now());
     }
 
-    if (typeof args[args.length - 1] === 'function') {
+    if (typeof arguments[arguments.length - 1] === 'function') {
+      var args = Array.prototype.slice.call(arguments);
+
       // Async callback function
       var callback = args.pop();
 
@@ -156,7 +171,7 @@ function _monitor(logLevel, serviceName, fnName, fn) {
       return fn.apply(undefined, args);
 
     } else {
-      var res = fn.apply(undefined, args);
+      var res = fn.apply(undefined, arguments);
       if (res && res.then) {
         // Probably (hopefully) a promise
         return res.then(function(data) {
@@ -176,8 +191,7 @@ function _monitor(logLevel, serviceName, fnName, fn) {
 
 function _logTime(monitorName, logLevel, fnName, startTime, endTime) {
 
-  var lvl = levelMap[logLevel] || Infinity;
-  if (lvl < _level) {
+  if (!logEnabled(logLevel)) {
     return;
   }
 
