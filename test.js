@@ -74,6 +74,7 @@ describe(__filename, function() {
     expect(items[0].service).to.eql('fooService');
     expect(items[0].fnName).to.eql('testFn');
     expect(items[0].time).to.eql(42);
+    expect(items[0].level).to.eql('info');
     expect(items[0].created).to.eql(new Date(0));
   });
 
@@ -95,6 +96,7 @@ describe(__filename, function() {
     expect(items[0].service).to.eql('/test');
     expect(items[0].fnName).to.eql('testFn');
     expect(items[0].time).to.eql(42); // Difference between 142 and 42
+    expect(items[0].level).to.eql('info');
     expect(items[0].created).to.eql(new Date(100));
   });
 
@@ -126,6 +128,7 @@ describe(__filename, function() {
       expect(items[0].service).to.eql('/test');
       expect(items[0].fnName).to.eql('fooCallback');
       expect(items[0].time).to.be.within(190, 210);
+      expect(items[0].level).to.eql('info');
       expect(items[0]).to.have.property('created');
 
       done();
@@ -158,6 +161,7 @@ describe(__filename, function() {
       expect(items[0].service).to.eql('/test');
       expect(items[0].fnName).to.eql('fooPromise');
       expect(items[0].time).to.be.within(190, 210);
+      expect(items[0].level).to.eql('info');
       expect(items[0]).to.have.property('created');
 
     });

@@ -65,8 +65,10 @@ function newMonitor(monitorName) {
   fn.info = _monitor.bind(null, 'info', serviceName);
 
   fn.logTime = function(logLevel, fnName, startTime, endTime) {
-    // Using _logTime.bind() here almost doubles the execution time.
-    // Interestingly enough, it doesn't seem to affect the other funtions as much.
+    if (!logEnabled(logLevel)) {
+      return;
+    }
+
     return _logTime(serviceName, logLevel, fnName, startTime, endTime);
   };
 
@@ -191,14 +193,11 @@ function _monitor(logLevel, serviceName, fnName, fn) {
 
 function _logTime(monitorName, logLevel, fnName, startTime, endTime) {
 
-  if (!logEnabled(logLevel)) {
-    return;
-  }
-
   var item = {
     service: monitorName,
     fnName: fnName,
     time: endTime - startTime,
+    level: logLevel,
     created: new Date(startTime)
   };
 

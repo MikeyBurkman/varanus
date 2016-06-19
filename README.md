@@ -24,6 +24,7 @@ var varanus = require('varanus');
 
 varanus.init({
   flushInterval: 30000,
+  logLevel: 'debug',
   flush: function(logs) {
     // Is an array of logs, with format {service: string, fnName: string, time: integer (ms), created: Date}
     records.forEach(function(record) {
@@ -43,16 +44,16 @@ varanus.init({
 var monitor = require('varanus').newMonitor(__filename);
 ...
 
-exports.getById = monitor(function getById(id) {
+exports.getById = monitor.info(function getById(id) {
   return dao.getById(id); // Works when the function returns a promise
 });
 
-exports.getByName = monitor(function getByName(name, callback) {
+exports.getByName = monitor.debug(function getByName(name, callback) {
   // Also works with callback functions, if it's the last argument and follows (err, result) style
   return dao.getByName(name, callback);
 });
 
-exports.transform = monitor(function transform(records) {
+exports.transform = monitor.trace(function transform(records) {
   // And of course works with synchronous functions
   for (var i = 0; i < records.length; i += 1) {
     ...
@@ -67,6 +68,13 @@ exports.foo = function() {
 }
 ```
 
+## Log Levels
+Just like other logging frameworks like Bunyan, Winston, etc, Varanus supports log levels. These are used primarily to control how much is logged in various environments. For instance, during testing, it's probably worthwhile monitoring just about everything. However, in production, it may be wiser to only monitor key functions, in order to cut down on overhead spent logging.
+
+When a log level is set, monitors set below that level will be ignored. For instance, if Varnus is set to level `debug`, then all logs from functions monitored at the `trace` level will be thrown away. There will still be a slight overhead when calling `trace` functions, but it will be considerably less than if `trace` was enabled.
+
+Unlike textual logging frameworks, there are no `warn`, `error`, or `fatal` log levels.
+
 ## API
 
 ### Varanus
@@ -77,57 +85,67 @@ The following functions are available on the root Varanus object:
   - `enabled` **Optional** Boolean value to enable/disable logging completely. Can be re-enabled by calling `enable()` (below). Defaults to `true`.
   - `flushInterval` **Optional** Number of milliseconds between flushing records. Defaults to `60000` (One minute).
   - `maxRecords` **Optional** Maximum number of records to gather in memory before automatically flushing, regardless of `flushInterval`. Set to a number <= 1 to flush on every record. Defaults to `Infinity`.
-  - `log` Customer logger to use. Must support at least `warn()`, and `error()` functions, in the style of [Bunyan](https://github.com/trentm/node-bunyan) logs. Defaults to `console.error`
+  - `level` The log level for Varanus. May be one of `trace`|`debug`|`info`. Defaults to `info`.
+  - `log` Custom logger to use. Must support at least `warn()`, and `error()` functions, in the style of [Bunyan](https://github.com/trentm/node-bunyan) logs. Defaults to `console.error`
 
 
-- `newMonitor(string)` Creates a new Monitor (see below) which can monitor the execution times of functions and log them. The only argument is the monitor name. It is recommended that you pass in `__filename` as the monitor name. Varanus will automatically strip the root path (`process.cwd()`) from the filename. Assuming the app is always launched from the same folder, this will yield consistent results across multiple deployments.
+- `newMonitor(string)` Creates and returns a new Monitor (see below) which can monitor the execution times of functions and log them. The only argument is the monitor name. It is recommended that you pass in `__filename` as the monitor name. Varanus will automatically strip the root path (`process.cwd()`) from the filename. Assuming the app is always launched from the same folder, this will yield consistent results across multiple deployments.
 
 - `flush()` Will force a a call to the flush function defined during initialization. Note that if there are no records in memory, this will not do anything.
 
 - `disable()` Will disable all logging of records until `enable()` is called.
 
-- `enable()` Will re-enable all logging of records, if it has been previously disabled.
+- `setLogLevel(string)` Sets the log level for Varnus. May be one of `trace`|`debug`|`info`.
 
-### Monitor
-Monitors are created by calling `newMonitor(string)` on the root Varanus object.
+- `logEnabled(string)` Returns `true` if the given log level is enabled. For instance, if the log level is `debug`, then `logEnabled('info')` will return `true`, while `logEnabled('trace')` will return `false`.
+
+### Monitors
+Monitors are created by calling `newMonitor(string)` on the root Varanus object. They are used to wrap functions to be monitored, and can manually log times if necessary.
 
 ```js
 var monitor = require('varanus').newMonitor(__filename);
 ```
 
-Monitors are functions that take in one or two arguments:
+##### Wrapping functions
+The easiest way to use Varanus is to just wrap your functions and let Varanus do the work.
 
-- `monitor(function)` Wraps the given function and returns a new function that takes in the same arguments and returns the same values.
-  - The function must have a name. This function name will be logged as the `fnName` when the function is executed.
-  - The function may return a promise, use traditional Node callback style (where the last argument is a function that takes `(err, result)` as arguments, or it may return a regular value. In the last case, the function is assumed to be synchronous.
-
-```js
-exports.foo = monitor(function foo(cb) {
-  database.find('foo=42', cb);
-});
-```
-
-- `monitor(string, function)` Wraps the given function and returns a new function that takes in the same arguments and returns the same values.
-  - This is identical to the single-argument function above, except the function name will always be the first argument, and the actual name of the function is ignored.
+Monitors are functions that take in one or two arguments. A single **named** function can be passed as the only argument. If the function is anonymous, then you should provide a name for the function as the first argument, and the second argument is the function.
 
 ```js
-exports.foo = monitor('foo', function (cb) {
-  database.find('foo=42', cb);
-});
+monitor.debug(function foo() { ... });
+// OR
+monitor.debug('foo', function() { ... });
 ```
 
-- `logTime(string, int, int)` Logs times directly. Not usually used directly.
+The wrapped functions can be:
+- Promise-based, where the function returns a Promise
+- Traditional Node callback-style, where the last argument is a function with the signature `function(err, result)`
+- Synchronous, where it either returns a non-Promise value, or nothing at all
+
+There are methods on `monitor` for each log level:
+
+```js
+monitor.trace(function foo() { ... });
+monitor.debug(function foo() { ... });
+monitor.info(function foo() { ... });
+```
+
+Lastly, there is a raw `logTime(string, string, int, int)` function for cases where wrapping a function is not feasible.
+
+One caveat with wrapping a function is that the returned function will not have the correct (or any) function name. If the function name is required, then using `logTime(string, string, int, int)` may be required.
+
+- `logTime(string, string, int, int)` Logs times directly.
+  - `string` The log level. If the Varanus log level is set above the threshold, this record is essentially thrown away immediately.
   - `string` The function name
   - `int` The Unix milliseconds value (usually from `Date.now()`) of when the function was started
   - `int` Unix milliseconds value of when the function completed
 
-One caveat with wrapping a function is that the returned function will not have the correct (or any) function name. This `logTime(string, int, int)` can be used in that case.
 
 ```js
 function foo(cb) {
   var start = Date.now();
   database.find('foo=42', function(err, result) {
-    monitor.logTime('foo', start, Date.now());
+    monitor.logTime('info', 'foo', start, Date.now());
     cb(err, result);
   });
 }

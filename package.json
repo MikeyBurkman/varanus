@@ -4,7 +4,8 @@
   "description": "Tool for sending performance monitoring metrics",
   "main": "index.js",
   "scripts": {
-    "test": "mocha test.js"
+    "test": "mocha test.js",
+    "perf": "node perfTest.js"
   },
   "repository": {
     "type": "git",
