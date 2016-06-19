@@ -26,12 +26,13 @@ varanus.init({
   flushInterval: 30000,
   logLevel: 'debug',
   flush: function(logs) {
-    // Is an array of logs, with format {service: string, fnName: string, time: integer (ms), created: Date}
+    // Is a non-empty array of logs
     records.forEach(function(record) {
       console.log('Performance: ', {
         service: record.service, // Name of the monitor
         fnName: record.fnName, // Name of the function being monitored
         time: record.time, // Number of milliseconds it took to run that function
+        level: record.level, // Log level for this record
         created: record.created // Date when the function was first executed
       });
     });
