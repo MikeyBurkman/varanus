@@ -4,17 +4,17 @@ Monitor utility for NodeJS apps
 ## What does it do?
 A simple utility for monitoring function run times and flushing them out to another system in batches.
 
-Varanus is **agnostic with where the monitor logs are sent.** They can be sent to an SQL database, Elasticsearch, InfluxDB, Prometheus, or even just your regular log files.
+- Varanus is **agnostic with where the monitor logs are sent.** They can be sent to an SQL database, Elasticsearch, InfluxDB, Prometheus, or even just your regular log files.
 
-Varanus provides easy to use **wrapper functions** to be **as transparent as possible** in your code.
+- Varanus provides easy to use **wrapper functions** to be **as transparent as possible** in your code.
 
-Monitor functions have **low overhead**. In testing, monitoring synchronous/promise functions seems to add roughly 600ns overhead. That means you'd have to call that function over 1,000,000 times for the performance to degrade by 1ms. (Traditional Node callback-style functions require some addition processing to intercept, and will roughly double that overhead. Still pretty trivial.)
+- Monitored functions have **low overhead**. In testing, monitoring functions adds about 0.0006ms overhead.
 
-Monitor functions can be given various log levels. Thus, you can log more information during testing **without adversely affecting production performance.** If the log level is turned off, expect only about 80ns overhead per function call.
+- Monitored functions can be given various log levels. Thus, you can log more information during testing **without adversely affecting production performance.** If the log level is turned off, expect only about 0.00008ms overhead per function call.
 
-**Failures to flush are handled gracefully.** If flushing throws an exception or returns a rejected promise, the records that would have been sent are re-collected and sent again on the next flush cycle.
+- **Failures to flush are handled gracefully.** If flushing throws an exception or returns a rejected promise, the records that would have been sent are re-collected and sent again on the next flush cycle.
 
-Varanus does not have to be initialized before anything is logged. Varanus will simply keep collecting records until you've successfully initialized it. **Your app can start logging metrics immediately on startup.**
+- Varanus does not have to be initialized before anything is logged. Varanus will simply keep collecting records until you've successfully initialized it. **Your app can start logging metrics immediately on startup.**
 
 ## Example
 
@@ -75,6 +75,17 @@ Just like other logging frameworks like Bunyan, Winston, etc, Varanus supports l
 When a log level is set, monitors set below that level will be ignored. For instance, if Varnus is set to level `debug`, then all logs from functions monitored at the `trace` level will be thrown away. There will still be a slight overhead when calling `trace` functions, but it will be considerably less than if `trace` was enabled.
 
 Unlike textual logging frameworks, there are no `warn`, `error`, or `fatal` log levels.
+
+## Performance
+In testing, monitoring synchronous/promise functions seems to add roughly 600ns overhead. That means you'd have to call that function over 1,500 times for the performance to degrade by just 1ms. If your function being monitored normally takes 1ms to run, then monitoring it adds an overhead of about 0.06%.
+
+If the monitor is set below the log level threshold (IE: it's `trace` when the level is set to `info`), then the overhead drops to about 80ns. That means the function can be called about 12,500 times for the performance to be degraded by 1ms.
+
+For a comparison, simply doing `console.log('foo')` takes more than 6,000ns per call.
+
+**Note that traditional Node callback-style functions require some addition processing to intercept, and will roughly double that overhead.** It's still pretty trivial, however.
+
+Testing is done right now by running the rather rudimentary `perfTest.js` file via `npm run perf`. It's far from perfect, but it allows for some tuning.
 
 ## API
 

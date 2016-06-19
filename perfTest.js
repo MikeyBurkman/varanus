@@ -4,7 +4,7 @@ var varanus = require('./index.js');
 
 varanus.init({
   flush: function() {},
-  maxRecords: 3000,
+  //maxRecords: 3000,
   level: 'info'
 });
 
@@ -16,7 +16,8 @@ var fnInfo = monitor.info(fn);
 var fnDebug = monitor.debug(fn);
 var fnTrace = monitor.trace(fn);
 var fnLogTimeInfo = function() {
-  monitor.logTime('fooService', 'info', 'fooFn', 0, 42);
+  var time = Date.now();
+  monitor.logTime('fooService', 'info', 'fooFn', time, time + 50);
 };
 var fnLogTimeTrace = function() {
   return monitor.logTime('fooService', 'debug', 'fooFn', 0, 42);
