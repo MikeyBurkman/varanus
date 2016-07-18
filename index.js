@@ -11,7 +11,7 @@ var LEVEL_MAP = {
 };
 
 module.exports = function(opts) {
-  
+
   var _level;
   setLogLevel(opts.level);
 
@@ -19,13 +19,15 @@ module.exports = function(opts) {
     throw new Error('Must provide a valid level attribute: ', Object.keys(LEVEL_MAP).join(' | '));
   }
 
+  var _captureErrors = (opts.captureErrors === false) ? false : true;
+
   var _x51 = x51({
     flush: opts.flush,
     flushInterval: opts.flushInterval,
     maxRecords: opts.maxRecords,
     log: opts.log
   });
-  
+
   // Public API
   var self = {
     newMonitor: newMonitor,
@@ -33,11 +35,11 @@ module.exports = function(opts) {
     setLogLevel: setLogLevel,
     logEnabled: logEnabled
   };
-  
+
   return self;
-  
+
   ////
-  
+
   function newMonitor(monitorName) {
 
     var serviceName = _formatFileName(monitorName);
@@ -75,7 +77,7 @@ module.exports = function(opts) {
     var lvl = LEVEL_MAP[logLevel] || Infinity;
     return (lvl >= _level);
   }
-  
+
   // Private functions
 
   function _formatFileName(fileName) {
@@ -90,15 +92,23 @@ module.exports = function(opts) {
       fnName = fn.name;
     }
 
+    function finish(start, err) {
+      var params;
+
+      if (err && _captureErrors) {
+        params = {
+          err: err
+        };
+      }
+      _logTime(serviceName, logLevel, fnName, start, Date.now(), params);
+    }
+
     return function() {
       if (!logEnabled(logLevel)) {
         return fn.apply(undefined, arguments);
       }
 
       var start = Date.now();
-      function finish() {
-        _logTime(serviceName, logLevel, fnName, start, Date.now());
-      }
 
       if (typeof arguments[arguments.length - 1] === 'function') {
         var args = Array.prototype.slice.call(arguments);
@@ -106,25 +116,37 @@ module.exports = function(opts) {
         // Async callback function
         var callback = args.pop();
 
-        args.push(function() {
-          finish();
+        args.push(function(err) {
+          finish(start, err);
           callback.apply(undefined, arguments);
         });
 
         return fn.apply(undefined, args);
 
       } else {
-        var res = fn.apply(undefined, arguments);
-        if (res && res.then) {
+        var res;
+
+        try {
+          res = fn.apply(undefined, arguments);
+        } catch (err) {
+          finish(start, err);
+          throw err;
+        }
+
+        if (res && res.then && res.catch) {
           // Probably (hopefully) a promise
           return res.then(function(data) {
-            finish();
+            finish(start);
             return data;
+          })
+          .catch(function(err) {
+            finish(start, err);
+            throw err;
           });
 
         } else {
           // Synchronous function
-          finish();
+          finish(start);
           return res;
         }
 
@@ -132,17 +154,18 @@ module.exports = function(opts) {
     };
   }
 
-  function _logTime(monitorName, logLevel, fnName, startTime, endTime) {
+  function _logTime(monitorName, logLevel, fnName, startTime, endTime, params) {
 
     var item = {
       service: monitorName,
       fnName: fnName,
       time: endTime - startTime,
       level: logLevel,
-      created: new Date(startTime)
+      created: new Date(startTime),
+      params: params || {}
     };
 
     _x51.push(item);
   }
-  
+
 };

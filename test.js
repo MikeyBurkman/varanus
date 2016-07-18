@@ -57,57 +57,164 @@ describe(__filename, function() {
     expect(items[0].created).to.eql(new Date(100));
   });
 
-  it('Should be able to monitor callback functions', function(done) {
-    var flush = sinon.stub();
+  describe('Monitoring callback functions', function() {
+    it('Should be able to monitor successful callback functions', function(done) {
+      var flush = sinon.stub();
 
-    var varanus = mod({
-      flush: flush
+      var varanus = mod({
+        flush: flush
+      });
+
+      var monitor = varanus.newMonitor(__filename);
+
+      var fn = monitor(function fooCallback(x, callback) {
+        setTimeout(function() {
+          callback(null, x);
+        }, 100);
+      });
+
+      fn('blah', function(err, result) {
+        expect(err).to.not.exist;
+        expect(result).to.eql('blah');
+
+        varanus.flush();
+
+        expect(flush.callCount).to.eql(1);
+
+        var items = flush.getCall(0).args[0];
+        expect(items.length).to.eql(1);
+        expect(items[0].service).to.eql('/test');
+        expect(items[0].fnName).to.eql('fooCallback');
+        expect(items[0].time).to.be.within(90, 110);
+        expect(items[0].level).to.eql('info');
+        expect(items[0]).to.have.property('created');
+        expect(items[0]).to.have.property('params').that.eql({});
+
+        done();
+      });
+
     });
 
-    var monitor = varanus.newMonitor(__filename);
+    it('Should capture errors in callback functions', function(done) {
+      var flush = sinon.stub();
 
-    var fn = monitor(function fooCallback(x, callback) {
-      setTimeout(function() {
-        callback(null, x);
-      }, 200);
+      var varanus = mod({
+        flush: flush
+      });
+
+      var monitor = varanus.newMonitor(__filename);
+
+      var err = new Error('some error');
+      var fn = monitor(function fooCallback(x, callback) {
+        setTimeout(function() {
+          callback(err);
+        }, 100);
+      });
+
+      fn('blah', function(err, result) {
+        expect(err).to.exist;
+        expect(err.message).to.eql('some error');
+        expect(result).to.not.exit;
+
+        varanus.flush();
+
+        expect(flush.callCount).to.eql(1);
+
+        var items = flush.getCall(0).args[0];
+        expect(items.length).to.eql(1);
+        expect(items[0].service).to.eql('/test');
+        expect(items[0].fnName).to.eql('fooCallback');
+        expect(items[0].time).to.be.within(90, 110);
+        expect(items[0].level).to.eql('info');
+        expect(items[0]).to.have.property('created');
+        expect(items[0]).to.have.deep.property('params.err', err);
+
+        done();
+      });
     });
-
-    fn('blah', function(err, result) {
-      expect(err).to.not.exist;
-      expect(result).to.eql('blah');
-
-      varanus.flush();
-
-      expect(flush.callCount).to.eql(1);
-
-      var items = flush.getCall(0).args[0];
-      expect(items.length).to.eql(1);
-      expect(items[0].service).to.eql('/test');
-      expect(items[0].fnName).to.eql('fooCallback');
-      expect(items[0].time).to.be.within(190, 210);
-      expect(items[0].level).to.eql('info');
-      expect(items[0]).to.have.property('created');
-
-      done();
-    });
-
   });
 
-  it('Should be able to monitor promise functions', function() {
-    var flush = sinon.stub();
+  describe('Monitoring promise functions', function() {
+    it('Should be able to monitor promise functions that resolve', function() {
+      var flush = sinon.stub();
 
-    var varanus = mod({
-      flush: flush
+      var varanus = mod({
+        flush: flush
+      });
+
+      var monitor = varanus.newMonitor(__filename);
+
+      var fn = monitor(function fooPromise() {
+        return Promise.delay(100).return('blah');
+      });
+
+      return fn().then(function(result) {
+        expect(result).to.eql('blah');
+
+        varanus.flush();
+
+        expect(flush.callCount).to.eql(1);
+
+        var items = flush.getCall(0).args[0];
+        expect(items.length).to.eql(1);
+        expect(items[0].service).to.eql('/test');
+        expect(items[0].fnName).to.eql('fooPromise');
+        expect(items[0].time).to.be.within(90, 110);
+        expect(items[0].level).to.eql('info');
+        expect(items[0]).to.have.property('created');
+        expect(items[0]).to.have.property('params').that.eql({});
+
+      });
     });
 
-    var monitor = varanus.newMonitor(__filename);
+    it('Should be able to monitor promise functions that reject', function() {
+      var flush = sinon.stub();
 
-    var fn = monitor(function fooPromise() {
-      return Promise.delay(200).return('blah');
+      var varanus = mod({
+        flush: flush
+      });
+
+      var monitor = varanus.newMonitor(__filename);
+
+      var err = new Error('some error');
+      var fn = monitor(function fooPromise() {
+        return Promise.delay(100).throw(err);
+      });
+
+      return fn().catch({message: 'some error'}, function() {
+        varanus.flush();
+
+        expect(flush.callCount).to.eql(1);
+
+        var items = flush.getCall(0).args[0];
+        expect(items.length).to.eql(1);
+        expect(items[0].service).to.eql('/test');
+        expect(items[0].fnName).to.eql('fooPromise');
+        expect(items[0].time).to.be.within(90, 110);
+        expect(items[0].level).to.eql('info');
+        expect(items[0]).to.have.property('created');
+        expect(items[0]).to.have.deep.property('params.err', err);
+
+      });
     });
+  });
 
-    return fn().then(function(result) {
-      expect(result).to.eql('blah');
+  describe('Monitoring of synchronous functions', function() {
+    it('Should be able to monitor synchronous functions that return', function() {
+      var flush = sinon.stub();
+
+      var varanus = mod({
+        flush: flush
+      });
+
+      var monitor = varanus.newMonitor(__filename);
+
+      var fn = monitor(function foo() {
+        return 42;
+      });
+
+      var res = fn();
+      expect(res).to.eql(42);
 
       varanus.flush();
 
@@ -116,10 +223,47 @@ describe(__filename, function() {
       var items = flush.getCall(0).args[0];
       expect(items.length).to.eql(1);
       expect(items[0].service).to.eql('/test');
-      expect(items[0].fnName).to.eql('fooPromise');
-      expect(items[0].time).to.be.within(190, 210);
+      expect(items[0].fnName).to.eql('foo');
+      expect(items[0].time).to.be.within(0, 3);
       expect(items[0].level).to.eql('info');
       expect(items[0]).to.have.property('created');
+      expect(items[0]).to.have.property('params').that.eql({});
+
+    });
+
+    it('Should be able to monitor synchronous functions that throw', function() {
+      var flush = sinon.stub();
+
+      var varanus = mod({
+        flush: flush
+      });
+
+      var monitor = varanus.newMonitor(__filename);
+
+      var err = new Error('some error');
+      var fn = monitor(function foo() {
+        throw err;
+      });
+
+      try {
+        fn();
+        throw new Error('fn() should have failed');
+      } catch(err) {
+        expect(err.message).to.eql('some error');
+      }
+
+      varanus.flush();
+
+      expect(flush.callCount).to.eql(1);
+
+      var items = flush.getCall(0).args[0];
+      expect(items.length).to.eql(1);
+      expect(items[0].service).to.eql('/test');
+      expect(items[0].fnName).to.eql('foo');
+      expect(items[0].time).to.be.within(0, 3);
+      expect(items[0].level).to.eql('info');
+      expect(items[0]).to.have.property('created');
+      expect(items[0]).to.have.deep.property('params.err', err);
 
     });
   });
@@ -338,7 +482,7 @@ describe(__filename, function() {
       expect(flush.callCount).to.eql(1); // Still 1
 
     });
-    
+
     it('Should not include logs below the set threshold, logTime()', function() {
       var flush = sinon.stub();
 

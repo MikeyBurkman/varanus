@@ -32,7 +32,8 @@ var varanus = require('varanus')({
         fnName: record.fnName, // Name of the function being monitored
         time: record.time, // Number of milliseconds it took to run that function
         level: record.level, // Log level for this record
-        created: record.created // Date when the function was first executed
+        created: record.created, // Date when the function was first executed
+        params: record.params // Any extra data passed to logTime() will be here. Will never be null/undefined
       });
     });
   }
@@ -92,10 +93,11 @@ Testing is done right now by running the rather rudimentary `perfTest.js` file v
 ### Varanus Initialization
 The following functions are available on the initialization function:
 - `flush` **Required** Function to call to flush a batch of records. This will usually format and send them to an external system, such as Elasticsearch, Mongo, etc. A non-empty array of records will be the only argument. See the example above to to see the available fields. May return a promise, which, if rejected, will result in the records being re-attempted in the next flush. (The ability to use a traditional Node callback function is in the works.)
-- `flushInterval` **Optional** Number of milliseconds between flushing records. Defaults to `60000` (One minute).
-- `maxRecords` **Optional** Maximum number of records to gather in memory before automatically flushing, regardless of `flushInterval`. Set to a number <= 1 to flush on every record. Defaults to `Infinity`.
-- `level` **Optional** The log level for Varanus. May be one of `off`|`trace`|`debug`|`info`. Defaults to `info`.
-- `log` **Optional** Custom logger to use. Must support at least `warn()`, and `error()` functions, in the style of [Bunyan](https://github.com/trentm/node-bunyan) logs. Logging is a no-op by default.
+- `flushInterval` **Optional** - **Integer** - Number of milliseconds between flushing records. Defaults to `60000` (One minute).
+- `maxRecords` **Optional** - **Integer** - Maximum number of records to gather in memory before automatically flushing, regardless of `flushInterval`. **Optional** - **Integer** - Set to a number <= 1 to flush on every record. Defaults to `Infinity`.
+- `level` **Optional** - **`'off'`|`'trace'`|`'debug'`|`'info'`** - The log level for Varanus. Defaults to `info`.
+- `captureErrors` **Optional** - **Boolean** - Whether or not to capture errors that occur in monitored functions. If `true`, then if a monitored function threw/rejected, the error will be in `params.err` passed to the record in `flush()`. Defaults to `true`.
+- `log` **Optional** - **Bunyan-like Logger** - Custom logger to use. Must support at least `warn()`, and `error()` functions, in the style of [Bunyan](https://github.com/trentm/node-bunyan) logs. Logging is a no-op by default.
 
 ### Varnus Instance Functions
 - `newMonitor(string)` Creates and returns a new Monitor (see below) which can monitor the execution times of functions and log them. The only argument is the monitor name. It is recommended that you pass in `__filename` as the monitor name. Varanus will automatically strip the root path (`process.cwd()`) from the filename. Assuming the app is always launched from the same folder, this will yield consistent results across multiple deployments.
@@ -138,11 +140,12 @@ Lastly, there is a raw `logTime(string, string, int, int)` function for cases wh
 
 One caveat with wrapping a function is that the returned function will not have the correct (or any) function name. If the function name is required, then using `logTime(string, string, int, int)` may be required.
 
-- `logTime(string, string, int, int)` Logs times directly.
+- `logTime(string, string, int, int, obj)` Logs times directly.
   - `string` The log level. If the Varanus log level is set above the threshold, this record is essentially thrown away immediately.
   - `string` The function name
   - `int` The Unix milliseconds value (usually from `Date.now()`) of when the function was started
   - `int` Unix milliseconds value of when the function completed
+  - `obj` An extra parameters object to hold whatever data you may want to pass to flush()
 
 
 ```js
