@@ -145,7 +145,7 @@ One caveat with wrapping a function is that the returned function will not have 
   - `string` The function name
   - `int` The Unix milliseconds value (usually from `Date.now()`) of when the function was started
   - `int` Unix milliseconds value of when the function completed
-  - `obj` An extra parameters object to hold whatever data you may want to pass to flush()
+  - `obj` An (optional) extra parameters object to hold whatever data you may want to pass to flush()
 
 
 ```js
