@@ -20,9 +20,8 @@ A simple utility for monitoring function run times and flushing them out to anot
 
 ##### Initialization
 ```js
-var varanus = require('varanus');
-
-varanus.init({
+// require('varanus') returns an initialization function that returns a new instance
+var varanus = require('varanus')({
   flushInterval: 30000,
   logLevel: 'debug',
   flush: function(logs) {
@@ -42,7 +41,7 @@ varanus.init({
 
 ##### Sample Service
 ```js
-var monitor = require('varanus').newMonitor(__filename);
+var monitor = varanus.newMonitor(__filename);
 ...
 
 exports.getById = monitor.info(function getById(id) {
@@ -62,7 +61,8 @@ exports.transform = monitor.trace(function transform(records) {
 });
 
 exports.foo = function() {
-  // Alternatively, you can call monitor.logTime(fnName, start millis, end millis) directly instead of wrapping a function
+  // Alternatively, you can call monitor.logTime(fnName, start millis, end millis) directly,
+  //  instead of wrapping a function
   var start = Date.now();
   ...
   monitor.logTime('foo', start, Date.now());
@@ -72,7 +72,7 @@ exports.foo = function() {
 ## Log Levels
 Just like other logging frameworks like Bunyan, Winston, etc, Varanus supports log levels. These are used primarily to control how much is logged in various environments. For instance, during testing, it's probably worthwhile monitoring just about everything. However, in production, it may be wiser to only monitor key functions, in order to cut down on overhead spent logging.
 
-When a log level is set, monitors set below that level will be ignored. For instance, if Varnus is set to level `debug`, then all logs from functions monitored at the `trace` level will be thrown away. There will still be a slight overhead when calling `trace` functions, but it will be considerably less than if `trace` was enabled.
+When a log level is set, monitors set below that level will be ignored. For instance, if Varnus is set to level `debug`, then all logs from functions monitored at the `trace` level will be thrown away. There will still be a slight overhead when calling `trace` functions, but it will be considerably less than if `trace` were enabled.
 
 Unlike textual logging frameworks, there are no `warn`, `error`, or `fatal` log levels.
 
@@ -89,33 +89,25 @@ Testing is done right now by running the rather rudimentary `perfTest.js` file v
 
 ## API
 
-### Varanus
-The following functions are available on the root Varanus object:
+### Varanus Initialization
+The following functions are available on the initialization function:
+- `flush` **Required** Function to call to flush a batch of records. This will usually format and send them to an external system, such as Elasticsearch, Mongo, etc. A non-empty array of records will be the only argument. See the example above to to see the available fields. May return a promise, which, if rejected, will result in the records being re-attempted in the next flush. (The ability to use a traditional Node callback function is in the works.)
+- `flushInterval` **Optional** Number of milliseconds between flushing records. Defaults to `60000` (One minute).
+- `maxRecords` **Optional** Maximum number of records to gather in memory before automatically flushing, regardless of `flushInterval`. Set to a number <= 1 to flush on every record. Defaults to `Infinity`.
+- `level` **Optional** The log level for Varanus. May be one of `off`|`trace`|`debug`|`info`. Defaults to `info`.
+- `log` **Optional** Custom logger to use. Must support at least `warn()`, and `error()` functions, in the style of [Bunyan](https://github.com/trentm/node-bunyan) logs. Logging is a no-op by default.
 
-- `init(opts)` Will initialize Varanus. Possible options include:
-  - `flush` **Required** Function to call to flush a batch of records. This will usually format and send them to an external system, such as Elasticsearch, Mongo, etc. A non-empty array of records will be the only argument. See the example above to to see the available fields. May return a promise, which, if rejected, will result in the records being re-attempted in the next flush. (The ability to use a traditional Node callback function is in the works.)
-  - `enabled` **Optional** Boolean value to enable/disable logging completely. Can be re-enabled by calling `enable()` (below). Defaults to `true`.
-  - `flushInterval` **Optional** Number of milliseconds between flushing records. Defaults to `60000` (One minute).
-  - `maxRecords` **Optional** Maximum number of records to gather in memory before automatically flushing, regardless of `flushInterval`. Set to a number <= 1 to flush on every record. Defaults to `Infinity`.
-  - `level` The log level for Varanus. May be one of `trace`|`debug`|`info`. Defaults to `info`.
-  - `log` Custom logger to use. Must support at least `warn()`, and `error()` functions, in the style of [Bunyan](https://github.com/trentm/node-bunyan) logs. Defaults to `console.error`
-
-
+### Varnus Instance Functions
 - `newMonitor(string)` Creates and returns a new Monitor (see below) which can monitor the execution times of functions and log them. The only argument is the monitor name. It is recommended that you pass in `__filename` as the monitor name. Varanus will automatically strip the root path (`process.cwd()`) from the filename. Assuming the app is always launched from the same folder, this will yield consistent results across multiple deployments.
-
 - `flush()` Will force a a call to the flush function defined during initialization. Note that if there are no records in memory, this will not do anything.
-
-- `disable()` Will disable all logging of records until `enable()` is called.
-
-- `setLogLevel(string)` Sets the log level for Varnus. May be one of `trace`|`debug`|`info`.
-
+- `setLogLevel(string)` Sets the log level for Varnus. May be one of `off`|`trace`|`debug`|`info`.
 - `logEnabled(string)` Returns `true` if the given log level is enabled. For instance, if the log level is `debug`, then `logEnabled('info')` will return `true`, while `logEnabled('trace')` will return `false`.
 
 ### Monitors
-Monitors are created by calling `newMonitor(string)` on the root Varanus object. They are used to wrap functions to be monitored, and can manually log times if necessary.
+Monitors are created by calling `newMonitor(string)` on a Varanaus instance. They are used to wrap functions to be monitored, and can manually log times if necessary.
 
 ```js
-var monitor = require('varanus').newMonitor(__filename);
+var monitor = varanus.newMonitor(__filename);
 ```
 
 ##### Wrapping functions

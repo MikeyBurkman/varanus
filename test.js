@@ -6,60 +6,17 @@ var Promise = require('bluebird');
 
 describe(__filename, function() {
 
-  var varanus;
+  var mod;
 
   beforeEach(function() {
     delete require.cache[require.resolve('./index')];
-    varanus = require('./index');
-  });
-
-  it('Should not log if log level is "off"', function() {
-    var flush = sinon.stub();
-
-    varanus.init({
-      flush: flush,
-      level: 'off'
-    });
-
-    varanus.newMonitor('fooService').logTime('info', 'testFn', 0, 42);
-
-    varanus.flush();
-
-    expect(flush.callCount).to.eql(0);
-  });
-
-  it('Should be able to toggle enabled/disabled', function() {
-    var flush = sinon.stub();
-
-    varanus.init({
-      flush: flush,
-      level: 'off'
-    });
-
-    var monitor = varanus.newMonitor('fooService');
-
-    monitor.logTime('info', 'testFn', 0, 42);
-    varanus.flush();
-    expect(flush.callCount).to.eql(0);
-
-    // Now set to something other than 'off' and try again
-    varanus.setLogLevel('info');
-    monitor.logTime('info', 'testFn', 0, 42);
-    varanus.flush();
-    expect(flush.callCount).to.eql(1);
-
-    // Now set to 'off', try again, and make sure flush wasn't called again
-    varanus.setLogLevel('off');
-    monitor.logTime('info', 'testFn', 0, 42);
-    varanus.flush();
-    expect(flush.callCount).to.eql(1); // Still 1
-
+    mod = require('./index');
   });
 
   it('Should use the given service name in the flushed records', function() {
     var flush = sinon.stub();
 
-    varanus.init({
+    var varanus = mod({
       flush: flush
     });
 
@@ -81,7 +38,7 @@ describe(__filename, function() {
   it('Should parse a filename if it is the arg to newMonitor()', function() {
     var flush = sinon.stub();
 
-    varanus.init({
+    var varanus = mod({
       flush: flush
     });
 
@@ -103,7 +60,7 @@ describe(__filename, function() {
   it('Should be able to monitor callback functions', function(done) {
     var flush = sinon.stub();
 
-    varanus.init({
+    var varanus = mod({
       flush: flush
     });
 
@@ -139,7 +96,7 @@ describe(__filename, function() {
   it('Should be able to monitor promise functions', function() {
     var flush = sinon.stub();
 
-    varanus.init({
+    var varanus = mod({
       flush: flush
     });
 
@@ -170,7 +127,7 @@ describe(__filename, function() {
   it('Should return the result of the function even when logging is disabled', function() {
     var flush = sinon.stub();
 
-    varanus.init({
+    var varanus = mod({
       flush: flush,
       level: 'off'
     });
@@ -193,7 +150,7 @@ describe(__filename, function() {
   it('Should be able to monitor functions that do not return values', function() {
     var flush = sinon.stub();
 
-    varanus.init({
+    var varanus = mod({
       flush: flush
     });
 
@@ -219,7 +176,7 @@ describe(__filename, function() {
   it('Should flush according to the flush interval', function(done) {
     var flush = sinon.stub();
 
-    varanus.init({
+    var varanus = mod({
       flush: flush,
       flushInterval: 200
     });
@@ -237,35 +194,13 @@ describe(__filename, function() {
 
   });
 
-  it('Should not flush until it has been initialized', function() {
-
-    varanus.newMonitor(__filename).logTime('info', 'testService', 0, 42);
-
-    varanus.flush();
-
-    var flush = sinon.stub();
-
-    varanus.init({
-      flush: flush
-    });
-
-    varanus.newMonitor(__filename).logTime('info', 'testService', 0, 100);
-
-    varanus.flush();
-
-    expect(flush.callCount).to.eql(1);
-
-    var items = flush.getCall(0).args[0];
-    expect(items.length).to.eql(2);
-  });
-
   it('Should not lose records if flush throws an error', function() {
     var flush = sinon.stub();
 
     flush.onCall(0).throws(new Error());
     flush.onCall(1).returns(undefined);
 
-    varanus.init({
+    var varanus = mod({
       flush: flush
     });
 
@@ -291,13 +226,13 @@ describe(__filename, function() {
     expect(items2.length).to.eql(2); // Should have both records this time
   });
 
-  it('Should not lose records if flush throws an error and is a promise', function(done) {
+  it('Should not lose records if flush returns a rejected promise', function(done) {
     var flush = sinon.stub();
 
     flush.onCall(0).returns(Promise.reject(new Error()));
     flush.onCall(1).returns(Promise.resolve());
 
-    varanus.init({
+    var varanus = mod({
       flush: flush
     });
 
@@ -330,7 +265,7 @@ describe(__filename, function() {
   it('Should not flush automatically if the number of records is below the set threshold', function() {
     var flush = sinon.stub();
 
-    varanus.init({
+    var varanus = mod({
       flush: flush,
       maxRecords: 2
     });
@@ -345,7 +280,7 @@ describe(__filename, function() {
   it('Should proactively flush if the number of records passes the set threshold', function() {
     var flush = sinon.stub();
 
-    varanus.init({
+    var varanus = mod({
       flush: flush,
       maxRecords: 2
     });
@@ -361,10 +296,53 @@ describe(__filename, function() {
   });
 
   describe('#Log Levels', function() {
+    it('Should not log if log level is "off"', function() {
+      var flush = sinon.stub();
+
+      var varanus = mod({
+        flush: flush,
+        level: 'off'
+      });
+
+      varanus.newMonitor('fooService').logTime('info', 'testFn', 0, 42);
+
+      varanus.flush();
+
+      expect(flush.callCount).to.eql(0);
+    });
+
+    it('Should support chaning the log level dynamically', function() {
+      var flush = sinon.stub();
+
+      var varanus = mod({
+        flush: flush,
+        level: 'off'
+      });
+
+      var monitor = varanus.newMonitor('fooService');
+
+      monitor.logTime('info', 'testFn', 0, 42);
+      varanus.flush();
+      expect(flush.callCount).to.eql(0);
+
+      // Now set to something other than 'off' and try again
+      varanus.setLogLevel('info');
+      monitor.logTime('info', 'testFn', 0, 42);
+      varanus.flush();
+      expect(flush.callCount).to.eql(1);
+
+      // Now set to 'off', try again, and make sure flush wasn't called again
+      varanus.setLogLevel('off');
+      monitor.logTime('info', 'testFn', 0, 42);
+      varanus.flush();
+      expect(flush.callCount).to.eql(1); // Still 1
+
+    });
+    
     it('Should not include logs below the set threshold, logTime()', function() {
       var flush = sinon.stub();
 
-      varanus.init({
+      var varanus = mod({
         flush: flush,
         level: 'debug'
       });
@@ -385,7 +363,7 @@ describe(__filename, function() {
     it('Should not include logs below the set threshold, using monitor()', function() {
       var flush = sinon.stub();
 
-      varanus.init({
+      var varanus = mod({
         flush: flush,
         level: 'debug'
       });
@@ -410,7 +388,7 @@ describe(__filename, function() {
     it('Should log default monitoring at INFO level', function() {
       var flush = sinon.stub();
 
-      varanus.init({
+      var varanus = mod({
         flush: flush,
         level: 'info'
       });

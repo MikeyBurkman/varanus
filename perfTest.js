@@ -1,10 +1,8 @@
 'use strict';
 
-var varanus = require('./index.js');
-
-varanus.init({
+var varanus = require('./index.js')({
   flush: function() {},
-  //maxRecords: 3000,
+  maxRecords: 4000,
   level: 'info'
 });
 
