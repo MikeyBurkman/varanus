@@ -13,12 +13,12 @@ describe(__filename, function() {
     varanus = require('./index');
   });
 
-  it('Should not log if disabled', function() {
+  it('Should not log if log level is "off"', function() {
     var flush = sinon.stub();
 
     varanus.init({
       flush: flush,
-      enabled: false
+      level: 'off'
     });
 
     varanus.newMonitor('fooService').logTime('info', 'testFn', 0, 42);
@@ -33,7 +33,7 @@ describe(__filename, function() {
 
     varanus.init({
       flush: flush,
-      enabled: false
+      level: 'off'
     });
 
     var monitor = varanus.newMonitor('fooService');
@@ -42,14 +42,14 @@ describe(__filename, function() {
     varanus.flush();
     expect(flush.callCount).to.eql(0);
 
-    // Now enable and try again
+    // Now set to something other than 'off' and try again
     varanus.setLogLevel('info');
     monitor.logTime('info', 'testFn', 0, 42);
     varanus.flush();
     expect(flush.callCount).to.eql(1);
 
-    // Now disable, try again, and make sure flush wasn't called again
-    varanus.disable();
+    // Now set to 'off', try again, and make sure flush wasn't called again
+    varanus.setLogLevel('off');
     monitor.logTime('info', 'testFn', 0, 42);
     varanus.flush();
     expect(flush.callCount).to.eql(1); // Still 1
@@ -167,12 +167,12 @@ describe(__filename, function() {
     });
   });
 
-  it('Should return the result of the function even when loggign is disabled', function() {
+  it('Should return the result of the function even when logging is disabled', function() {
     var flush = sinon.stub();
 
     varanus.init({
       flush: flush,
-      enabled: false
+      level: 'off'
     });
 
     var monitor = varanus.newMonitor(__filename);

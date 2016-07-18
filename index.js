@@ -1,22 +1,15 @@
 
 'use strict';
 
-var _configured = false;
-var _level = 0; // Until initialized, log all calls TODO How to handle this better?
-var _log = _defaultLogger();
-var _flushInterval;
-var _maxRecords;
-var _flush;
+var x51 = require('x51')();
 
-// Will flush using this setTimeout
-var _timeout;
-// Contains everything that hasn't been flushed yet
-var _items = [];
+var _level = 0; // NOTE: Until initialized, we log all calls
 
 var levelMap = {
   trace: 10,
   debug: 20,
-  info: 30
+  info: 30,
+  off: Infinity
 };
 
 ///// Public API
@@ -24,33 +17,23 @@ exports.init = init;
 exports.newMonitor = newMonitor;
 exports.flush = flush;
 exports.setLogLevel = setLogLevel;
-exports.disable = disable;
 exports.logEnabled = logEnabled;
 ////////////////
 
 function init(opts) {
-  _configured = false;
 
   _level = levelMap[opts.level || 'info'];
-  if (opts.enabled === false) {
-    _level = Infinity; // Nothing is above this threshold, so nothing gets logged
-  }
-  _flush = opts.flush;
-  _flushInterval = opts.flushInterval || 60000;
-  _maxRecords = opts.maxRecords || Infinity;
-  _log = opts.log || _defaultLogger();
 
   if (!_level) {
     throw new Error('Must provide a valid level attribute: ', Object.keys(levelMap).join(' | '));
   }
 
-  if (!_flush) {
-    throw new Error('You must provide a `flush` funtion to init(opts)');
-  }
-
-  _configured = true;
-
-  _timeout = setTimeout(flush, _flushInterval);
+  x51.init({
+    flush: opts.flush,
+    flushInterval: opts.flushInterval,
+    maxRecords: opts.maxRecords,
+    log: opts.log
+  });
 
   return module.exports;
 }
@@ -76,47 +59,8 @@ function newMonitor(monitorName) {
 }
 
 function flush() {
-
-  // If we flushed because we reached our max items, then make sure we don't
-  //  try to automatically flush again until the flushInterval has passed
-  clearTimeout(_timeout);
-  _timeout = setTimeout(flush, _flushInterval);
-
-  if (_items.length === 0) {
-    return;
-  }
-
-  if (!_configured) {
-    _log.warn('Varanus is trying to flush records, but it has not been initialized yet');
-    return;
-  }
-
-  var curBatch = _items;
-  _items = [];
-
-  var res;
-
-  try {
-    res = _flush(curBatch);
-  } catch (err) {
-    // In case _flush is synchronous
-    _log.error(err, 'Error sending items');
-    // In case the error is transient, make sure we don't lose any logs
-    _items = _items.concat(curBatch);
-  }
-
-  if (res && res.catch) {
-    // Was probably a promise -- try catching and handling any errors
-    res.catch(function(err) {
-      _log.error(err, 'Error sending items');
-      // In case the error is transient, make sure we don't lose any logs
-      _items = _items.concat(curBatch);
-    });
-  }
-
-  // TODO: What if flush() is a callback function?
+  return x51.flush();
 }
-
 
 function setLogLevel(level) {
   var lvl = levelMap[level || 'info'];
@@ -124,10 +68,6 @@ function setLogLevel(level) {
     throw new Error('Must provide a valid level attribute: ', Object.keys(levelMap).join(' | '));
   }
   _level = lvl;
-}
-
-function disable() {
-  _level = Infinity;
 }
 
 function logEnabled(logLevel) {
@@ -201,16 +141,5 @@ function _logTime(monitorName, logLevel, fnName, startTime, endTime) {
     created: new Date(startTime)
   };
 
-  _items.push(item);
-
-  if (_items.length >= _maxRecords) {
-    flush();
-  }
-}
-
-function _defaultLogger() {
-  return {
-    warn: console.error.bind(console, '<WARN>'),
-    error: console.error.bind(console, '<ERROR>')
-  };
+  x51.push(item);
 }

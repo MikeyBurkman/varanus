@@ -1,6 +1,6 @@
 {
   "name": "varanus",
-  "version": "1.0.2",
+  "version": "2.0.0",
   "description": "Tool for sending performance monitoring metrics",
   "main": "index.js",
   "scripts": {
@@ -21,6 +21,9 @@
     "url": "https://github.com/MikeyBurkman/varanus/issues"
   },
   "homepage": "https://github.com/MikeyBurkman/varanus#readme",
+  "dependencies": {
+    "x51": "~1.0.0"
+  },
   "devDependencies": {
     "bluebird": "^3.4.0",
     "chai": "^3.5.0",
