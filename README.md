@@ -59,14 +59,16 @@ exports.transform = monitor.trace(function transform(records) {
   for (var i = 0; i < records.length; i += 1) {
     ...
   });
+
+  return ...
 });
 
 exports.foo = function() {
-  // Alternatively, you can call monitor.logTime(fnName, start millis, end millis) directly,
-  //  instead of wrapping a function
+  // Alternatively, instead of wrapping a function, you can directly call
+  //  monitor.logTime(logLevel, fnName, startMillis, endMillis)
   var start = Date.now();
   ...
-  monitor.logTime('foo', start, Date.now());
+  monitor.logTime('info', 'foo', start, Date.now());
 }
 ```
 
@@ -99,7 +101,7 @@ The following functions are available on the initialization function:
 - `captureErrors` **Optional** - **Boolean** - Whether or not to capture errors that occur in monitored functions. If `true`, then if a monitored function threw/rejected, the error will be in `params.err` passed to the record in `flush()`. Defaults to `true`.
 - `log` **Optional** - **Bunyan-like Logger** - Custom logger to use. Must support at least `warn()`, and `error()` functions, in the style of [Bunyan](https://github.com/trentm/node-bunyan) logs. Logging is a no-op by default.
 
-### Varnus Instance Functions
+### Varanus Instance Functions
 - `newMonitor(string)` Creates and returns a new Monitor (see below) which can monitor the execution times of functions and log them. The only argument is the monitor name. It is recommended that you pass in `__filename` as the monitor name. Varanus will automatically strip the root path (`process.cwd()`) from the filename. Assuming the app is always launched from the same folder, this will yield consistent results across multiple deployments.
 - `flush()` Will force a a call to the flush function defined during initialization. Note that if there are no records in memory, this will not do anything.
 - `setLogLevel(string)` Sets the log level for Varnus. May be one of `off`|`trace`|`debug`|`info`.
@@ -136,23 +138,24 @@ monitor.debug(function foo() { ... });
 monitor.info(function foo() { ... });
 ```
 
-Lastly, there is a raw `logTime(string, string, int, int)` function for cases where wrapping a function is not feasible.
+Lastly, there is a raw `logTime(string, string, int, int, obj)` function for cases where wrapping a function is not feasible. This is a low-level function and should generally be avoided.
 
-One caveat with wrapping a function is that the returned function will not have the correct (or any) function name. If the function name is required, then using `logTime(string, string, int, int)` may be required.
+One caveat with wrapping a function is that the returned function will not have the correct (or any) function name. If the function name is required, then using `logTime(string, string, int, int, obj)` may be required.
 
-- `logTime(string, string, int, int, obj)` Logs times directly.
-  - `string` The log level. If the Varanus log level is set above the threshold, this record is essentially thrown away immediately.
-  - `string` The function name
-  - `int` The Unix milliseconds value (usually from `Date.now()`) of when the function was started
-  - `int` Unix milliseconds value of when the function completed
-  - `obj` An (optional) extra parameters object to hold whatever data you may want to pass to flush()
+Note! When using `logTime`, Varanus has no knowledge of whether an error has occurred, so even if `captureErrors` was set to true during initialization, you'll have to manually include any error in the params object. (See the example below.)
 
+- `logTime(logLevel, fnName, startMillis, endMillis, params)` Logs times directly.
+  - `logLevel` **Required** - **String** - The log level. If the Varanus log level is set above the threshold, this record is essentially thrown away immediately. See above section on log levels for possible values.
+  - `fnName` **Required** - **String** - The function name
+  - `startMillis` **Required** - **Integer** - The Unix milliseconds value (usually from `Date.now()`) of when the function was started
+  - `endMillis` **Required** - **Integer** - Unix milliseconds value of when the function completed
+  - `params` **Optional** - **Object** - An extra parameters object to hold whatever data you may want to be included in the record when passed to `flush()`.
 
 ```js
 function foo(cb) {
   var start = Date.now();
-  database.find('foo=42', function(err, result) {
-    monitor.logTime('info', 'foo', start, Date.now());
+  database.find({id: 42}, function(err, result) {
+    monitor.logTime('info', 'foo', start, Date.now(), {err: err});
     cb(err, result);
   });
 }
