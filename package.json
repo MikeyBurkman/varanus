@@ -22,7 +22,7 @@
   },
   "homepage": "https://github.com/MikeyBurkman/varanus#readme",
   "dependencies": {
-    "x51": "~2.0.0"
+    "x51": "^2.0.1"
   },
   "devDependencies": {
     "bluebird": "^3.4.0",
