@@ -551,4 +551,34 @@ describe(__filename, function() {
     });
   });
 
+  describe('#getLogger', function () {
+    it('should return a logger instance and write a log', function () {
+      var flush = sinon.stub();
+
+      var varanus = mod({
+        flush: flush,
+        level: 'info'
+      });
+
+      var name = 'test-logger';
+      var operation = 'test-operation';
+      var log = varanus.getLogger(name);
+      var start = Date.now();
+
+      expect(log.info).to.be.a('function');
+
+      log(operation, start);
+
+      varanus.flush();
+
+      expect(flush.callCount).to.eql(1);
+      var items = flush.getCall(0).args[0];
+      expect(items.length).to.eql(1);
+
+      expect(items[0].service).to.equal(name);
+      expect(items[0].fnName).to.equal(operation);
+      expect(items[0].time).to.be.a('number');
+    });
+  });
+
 });

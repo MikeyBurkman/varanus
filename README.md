@@ -106,6 +106,8 @@ The following functions are available on the initialization function:
 - `flush()` Will force a a call to the flush function defined during initialization. Note that if there are no records in memory, this will not do anything.
 - `setLogLevel(string)` Sets the log level for Varnus. May be one of `off`|`trace`|`debug`|`info`.
 - `logEnabled(string)` Returns `true` if the given log level is enabled. For instance, if the log level is `debug`, then `logEnabled('info')` will return `true`, while `logEnabled('trace')` will return `false`.
+- `getLogger(name, defaultLevel)` Returns a function _log(logName, start, end, level)_ that can be used to programmatically log timings. The returned item also has _info_, _trace_, and _debug_ methods attached allowing you to log at the required level.
+- `levels` The map of log levels supported, e.g _levels.info_ can be passed where required to log at info level.
 
 ### Monitors
 Monitors are created by calling `newMonitor(string)` on a Varanaus instance. They are used to wrap functions to be monitored, and can manually log times if necessary.
@@ -159,4 +161,20 @@ function foo(cb) {
     cb(err, result);
   });
 }
+```
+
+### Loggers
+For most use cases wrapping functions with a monitor is the easiest approach, but if you'd like to programmatically use varanus then a logger instance can facilitate that. Loggers expose functionality to log timing without the need for wrapping functions.
+
+```js
+var logger = varanus.getLogger('timings', varanus.levels.info);
+
+var start = Date.now();
+
+performSlowOperation()
+  .then(function () {
+    // Passing the end time is optional, if you omit it, varanus will insert it
+    var end = Date.now();
+    logger.info('my-custom-timer', start, end);
+  });;
 ```

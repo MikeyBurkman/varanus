@@ -2,6 +2,7 @@
 'use strict';
 
 var x51 = require('x51');
+var assert = require('assert');
 
 var LEVEL_MAP = {
   trace: 10,
@@ -33,7 +34,9 @@ module.exports = function(opts) {
     newMonitor: newMonitor,
     flush: flush,
     setLogLevel: setLogLevel,
-    logEnabled: logEnabled
+    logEnabled: logEnabled,
+    getLogger: getLogger,
+    levels: LEVEL_MAP
   };
 
   return self;
@@ -152,6 +155,35 @@ module.exports = function(opts) {
 
       }
     };
+  }
+
+  /**
+   * Returns a logger that can be used programmatically.
+   * @param  {String}   name
+   * @param  {Number}   defaultLevel
+   * @return {Function}
+   */
+  function getLogger (name, defaultLevel) {
+    assert.equal(typeof name, 'string', 'getLogger expects a logger name');
+    assert.notEqual(name.length, 0, 'getLogger expects a logger name');
+
+    defaultLevel = defaultLevel || _level;
+
+    function _log (fnName, start, end, lvl) {
+      lvl = lvl || defaultLevel;
+      end = end || Date.now();
+
+      _logTime(name, lvl, fnName, start, end);
+    }
+
+    // Add methods for each log level, (info, trace, debug)
+    Object.keys(LEVEL_MAP).forEach(function (key) {
+      _log[key] = function (fnName, start, end) {
+        _log(fnName, start, end, LEVEL_MAP[key]);
+      };
+    });
+
+    return _log;
   }
 
   function _logTime(monitorName, logLevel, fnName, startTime, endTime, params) {
