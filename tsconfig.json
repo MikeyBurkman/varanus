@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "isolatedModules": false,
+    "jsx": "react",
+    "experimentalDecorators": false,
+    "emitDecoratorMetadata": false,
+    "declaration": true,
+    "noImplicitAny": true,
+    "removeComments": false,
+    "noLib": false,
+    "preserveConstEnums": true,
+    "suppressImplicitAnyIndexErrors": true,
+    "sourceMap": false,
+    "inlineSourceMap": true,
+    "noImplicitReturns": true,
+    "strictNullChecks": true
+  },
+  "compileOnSave": true
+}

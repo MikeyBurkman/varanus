@@ -117,12 +117,12 @@ var monitor = varanus.newMonitor(__filename);
 ##### Wrapping functions
 The easiest way to use Varanus is to just wrap your functions and let Varanus do the work.
 
-Monitors are functions that take in one or two arguments. A single **named** function can be passed as the only argument. If the function is anonymous, then you should provide a name for the function as the first argument, and the second argument is the function.
+Monitors are functions that take in one or two arguments. A single **named** function can be passed as the only argument. If the function is anonymous, then you should provide a name for the function as the last argument.
 
 ```js
 monitor.debug(function foo() { ... });
 // OR
-monitor.debug('foo', function() { ... });
+monitor.debug(function() { ... }, 'foo');
 ```
 
 The wrapped functions can be:

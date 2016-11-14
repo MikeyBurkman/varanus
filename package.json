@@ -1,11 +1,13 @@
 {
   "name": "varanus",
-  "version": "2.0.1",
+  "version": "3.0.0",
   "description": "Tool for sending performance monitoring metrics",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
-    "test": "mocha test.js",
-    "perf": "node perfTest.js"
+    "compile": "node_modules/.bin/tsc --pretty",
+    "test": "npm run compile && mocha src/test.js",
+    "perf": "npm run compile && node src/perfTest.js",
+    "clean": "del src/*.js && del src/*.d.ts"
   },
   "repository": {
     "type": "git",
@@ -25,9 +27,17 @@
     "x51": "^2.0.1"
   },
   "devDependencies": {
+    "@types/bluebird": "^3.0.35",
+    "@types/chai": "^3.4.34",
+    "@types/mocha": "^2.2.32",
+    "@types/node": "^4.0.30",
+    "@types/sinon": "^1.16.31",
+    "del-cli": "^0.2.0",
     "bluebird": "^3.4.0",
     "chai": "^3.5.0",
     "mocha": "^2.5.3",
-    "sinon": "^1.17.4"
+    "sinon": "^1.17.4",
+    "source-map-support": "^0.4.6",
+    "typescript": "^2.1.1"
   }
 }

@@ -1,6 +1,8 @@
 'use strict';
 
-var varanus = require('./index.js')({
+import varanusFn from './index';
+
+var varanus = varanusFn({
   flush: function() {},
   maxRecords: 4000,
   level: 'info'
@@ -15,10 +17,10 @@ var fnDebug = monitor.debug(fn);
 var fnTrace = monitor.trace(fn);
 var fnLogTimeInfo = function() {
   var time = Date.now();
-  monitor.logTime('fooService', 'info', 'fooFn', time, time + 50);
+  monitor.logTime('info', 'fooFn', time, time + 50);
 };
 var fnLogTimeTrace = function() {
-  return monitor.logTime('fooService', 'debug', 'fooFn', 0, 42);
+  return monitor.logTime('debug', 'fooFn', 0, 42);
 };
 
 var rawTime = time(fn);
@@ -29,7 +31,7 @@ console.log('LogTime Info Time/Call: ', time(fnLogTimeInfo), 'ns');
 console.log('LogTime Debug Time/Call: ', time(fnLogTimeTrace), 'ns');
 process.exit(0);
 
-function time(f) {
+function time(f: Function) {
   var iterations = 1000000;
   var start = process.hrtime();
   for (var i = 0; i < iterations; i += 1) {
@@ -40,6 +42,6 @@ function time(f) {
   return res;
 }
 
-function toNanos(time) {
+function toNanos(time: number[]) {
   return time[0] * 1e9 + time[1];
 }
