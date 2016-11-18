@@ -41,7 +41,14 @@ export interface Monitor {
   info: MonitorFn
 }
 
-export default function (opts: Options) {
+export interface Varanus {
+  newMonitor: (monitorName: string) => Monitor;
+  flush: () => void;
+  setLogLevel: (level: Level|'off') => void;
+  logEnabled: (level: Level) => boolean;
+}
+
+export default function varanus(opts: Options): Varanus {
 
   let _level: number;
   setLogLevel(opts.level || 'info');

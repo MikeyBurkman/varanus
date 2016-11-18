@@ -38,6 +38,9 @@
     "mocha": "^2.5.3",
     "sinon": "^1.17.4",
     "source-map-support": "^0.4.6",
-    "typescript": "^2.1.1"
+    "typescript": "^2.0.10"
+  },
+  "engines": {
+    "node": ">= 4"
   }
 }

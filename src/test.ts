@@ -6,7 +6,7 @@ import {expect} from 'chai';
 import * as sinon from 'sinon';
 import * as Promise from 'bluebird';
 
-import varanusFn from './index';
+import varanusInit from './index';
 
 const testFileName = '/src/test'
 
@@ -15,7 +15,7 @@ describe(__filename, function() {
   it('Should use the given service name in the flushed records', function() {
     const flush = sinon.stub();
 
-    const varanus = varanusFn({
+    const varanus = varanusInit({
       flush: flush
     });
 
@@ -37,7 +37,7 @@ describe(__filename, function() {
   it('Should parse a filename if it is the arg to newMonitor()', function() {
     const flush = sinon.stub();
 
-    const varanus = varanusFn({
+    const varanus = varanusInit({
       flush: flush
     });
 
@@ -59,13 +59,15 @@ describe(__filename, function() {
   it('Should wrap anonymous functions with a fnName', function() {
     const flush = sinon.stub();
 
-    const varanus = varanusFn({
+    const varanus = varanusInit({
       flush: flush
     });
 
     const fn = varanus.newMonitor('foo').info(function(x: string): string {
       return x + '-' + x;
     }, 'service');
+
+    expect(fn.name).to.eql('service');
 
     const result = fn('a');
 
@@ -86,7 +88,7 @@ describe(__filename, function() {
     it('Should be able to monitor successful callback functions', function(done) {
       const flush = sinon.stub();
 
-      const varanus = varanusFn({
+      const varanus = varanusInit({
         flush: flush
       });
 
@@ -130,7 +132,7 @@ describe(__filename, function() {
     it('Should capture errors in callback functions', function(done) {
       const flush = sinon.stub();
 
-      const varanus = varanusFn({
+      const varanus = varanusInit({
         flush: flush
       });
 
@@ -170,7 +172,7 @@ describe(__filename, function() {
     it('Should be able to monitor promise functions that resolve', function() {
       const flush = sinon.stub();
 
-      const varanus = varanusFn({
+      const varanus = varanusInit({
         flush: flush
       });
 
@@ -202,7 +204,7 @@ describe(__filename, function() {
     it('Should be able to monitor promise functions that reject', function() {
       const flush = sinon.stub();
 
-      const varanus = varanusFn({
+      const varanus = varanusInit({
         flush: flush
       });
 
@@ -235,7 +237,7 @@ describe(__filename, function() {
     it('Should be able to monitor synchronous functions that return', function() {
       const flush = sinon.stub();
 
-      const varanus = varanusFn({
+      const varanus = varanusInit({
         flush: flush
       });
 
@@ -266,7 +268,7 @@ describe(__filename, function() {
     it('Should be able to monitor synchronous functions that throw', function() {
       const flush = sinon.stub();
 
-      const varanus = varanusFn({
+      const varanus = varanusInit({
         flush: flush
       });
 
@@ -303,7 +305,7 @@ describe(__filename, function() {
   it('Should return the result of the function even when logging is disabled', function() {
     const flush = sinon.stub();
 
-    const varanus = varanusFn({
+    const varanus = varanusInit({
       flush: flush,
       level: 'off'
     });
@@ -326,7 +328,7 @@ describe(__filename, function() {
   it('Should be able to monitor functions that do not return values', function() {
     const flush = sinon.stub();
 
-    const varanus = varanusFn({
+    const varanus = varanusInit({
       flush: flush
     });
 
@@ -352,7 +354,7 @@ describe(__filename, function() {
   it('Should flush according to the flush interval', function(done) {
     const flush = sinon.stub();
 
-    const varanus = varanusFn({
+    const varanus = varanusInit({
       flush: flush,
       flushInterval: 200
     });
@@ -376,7 +378,7 @@ describe(__filename, function() {
     flush.onCall(0).throws(new Error());
     flush.onCall(1).returns(undefined);
 
-    const varanus = varanusFn({
+    const varanus = varanusInit({
       flush: flush
     });
 
@@ -408,7 +410,7 @@ describe(__filename, function() {
     flush.onCall(0).returns(Promise.reject(new Error()));
     flush.onCall(1).returns(Promise.resolve());
 
-    const varanus = varanusFn({
+    const varanus = varanusInit({
       flush: flush
     });
 
@@ -441,7 +443,7 @@ describe(__filename, function() {
   it('Should not flush automatically if the number of records is below the set threshold', function() {
     const flush = sinon.stub();
 
-    const varanus = varanusFn({
+    const varanus = varanusInit({
       flush: flush,
       maxRecords: 2
     });
@@ -456,7 +458,7 @@ describe(__filename, function() {
   it('Should proactively flush if the number of records passes the set threshold', function() {
     const flush = sinon.stub();
 
-    const varanus = varanusFn({
+    const varanus = varanusInit({
       flush: flush,
       maxRecords: 2
     });
@@ -475,7 +477,7 @@ describe(__filename, function() {
     it('Should not log if log level is "off"', function() {
       const flush = sinon.stub();
 
-      const varanus = varanusFn({
+      const varanus = varanusInit({
         flush: flush,
         level: 'off'
       });
@@ -490,7 +492,7 @@ describe(__filename, function() {
     it('Should support changing the log level dynamically', function() {
       const flush = sinon.stub();
 
-      const varanus = varanusFn({
+      const varanus = varanusInit({
         flush: flush,
         level: 'off'
       });
@@ -518,7 +520,7 @@ describe(__filename, function() {
     it('Should not include logs below the set threshold, logTime()', function() {
       const flush = sinon.stub();
 
-      const varanus = varanusFn({
+      const varanus = varanusInit({
         flush: flush,
         level: 'debug'
       });
@@ -539,7 +541,7 @@ describe(__filename, function() {
     it('Should not include logs below the set threshold, using monitor()', function() {
       const flush = sinon.stub();
 
-      const varanus = varanusFn({
+      const varanus = varanusInit({
         flush: flush,
         level: 'debug'
       });

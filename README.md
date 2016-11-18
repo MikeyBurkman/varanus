@@ -138,9 +138,7 @@ monitor.debug(function foo() { ... });
 monitor.info(function foo() { ... });
 ```
 
-Lastly, there is a raw `logTime(string, string, int, int, obj)` function for cases where wrapping a function is not feasible. This is a low-level function and should generally be avoided.
-
-One caveat with wrapping a function is that the returned function will not have the correct (or any) function name. If the function name is required, then using `logTime(string, string, int, int, obj)` may be required.
+Lastly, there is a raw `logTime(string, string, int, int, obj)` function for cases where wrapping a function is not feasible. This is a low-level function and should generally be used only when absolutely necessary.
 
 Note! When using `logTime`, Varanus has no knowledge of whether an error has occurred, so even if `captureErrors` was set to true during initialization, you'll have to manually include any error in the params object. (See the example below.)
 
@@ -159,4 +157,35 @@ function foo(cb) {
     cb(err, result);
   });
 }
+```
+
+## Previous Versions
+### Upgrading from 2.x to 3.x
+- Now requires at least **Node 4**
+- Optimized for ES6 imports
+ES6 Import style:
+```js
+import varanusInit from 'varanus';
+const varanus = varanusInit(varanusOpts);
+```
+If using old-style `require()`, you'll need to use the `default` property:
+```js
+const varanusInit = require('varanus').default;
+const varanus = varanusInit(varanusOpts);
+```
+- Manual function name is now the last argument
+
+If monitoring anonymous functions, the name to use for the function is now the LAST argument, instead of the first:
+```js
+const fn = monitor.info((foo) => somethingAsync(foo), 'fooFunction');
+```
+
+- Monitored functions now have the same name as the functions they wrap:
+```js
+function foo(x) { return 'abc'; };
+const fn = monitor.info(foo);
+console.log(fn.name); // Now prints out 'foo' instead of 'undefined'
+
+const fn2 = monitor.debug(x => 'abc', 'bar');
+console.log(fn2.name); // Prints out 'bar', the name given to the monitor function
 ```

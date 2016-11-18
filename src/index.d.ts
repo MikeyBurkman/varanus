@@ -22,9 +22,10 @@ export interface Monitor {
     debug: MonitorFn;
     info: MonitorFn;
 }
-export default function (opts: Options): {
+export interface Varanus {
     newMonitor: (monitorName: string) => Monitor;
     flush: () => void;
-    setLogLevel: (level: "trace" | "debug" | "info" | "off") => void;
-    logEnabled: (logLevel: Level) => boolean;
-};
+    setLogLevel: (level: Level | 'off') => void;
+    logEnabled: (level: Level) => boolean;
+}
+export default function varanus(opts: Options): Varanus;
